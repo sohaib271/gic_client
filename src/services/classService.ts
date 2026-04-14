@@ -193,6 +193,32 @@ class ClassService {
     );
     return res.json();
   }
+
+  // ─── Attendance ─────────────────────────────────────────────
+
+  static async markAttendance(
+    classId: string,
+    data: {
+      date: string;
+      teacherId: string;
+      attendance: { studentId: string; status: string }[];
+    }
+  ) {
+    const res = await fetch(`${API}/class/${classId}/attendance`, {
+      method: "POST",
+      headers: this.authHeaders(),
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  }
+
+  static async getAttendance(classId: string, date: string) {
+    const res = await fetch(`${API}/class/${classId}/attendance?date=${date}`, {
+      method: "GET",
+      headers: this.authHeaders(),
+    });
+    return res.json();
+  }
 }
 
 export default ClassService;

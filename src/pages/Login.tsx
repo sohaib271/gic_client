@@ -47,8 +47,12 @@ const Login = () => {
 
     setError("");
 
-    // ✅ Let React Query fetch /me instead
-    navigate("/admin/dashboard");
+    // Route based on role
+    if (res?.user?.role === "proff") {
+      navigate("/professor/dashboard");
+    } else {
+      navigate("/admin/dashboard");
+    }
 
   } catch (err) {
     setError("Something went wrong");
