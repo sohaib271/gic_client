@@ -1,5 +1,4 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React, {Suspense} from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Login from "./pages/Login";
 import AdminLayout from "./components/AdminLayout";
 import ProfessorLayout from "./components/ProfessorLayout";
-const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
 import IntermediateStudents from "./pages/IntermediateStudents";
 import BsAdpStudents from "./pages/BsAdpStudents";
@@ -26,14 +25,13 @@ import BsAdpAccounts from "./pages/BsAdpAccounts";
 import Faculty from "./pages/Faculty";
 import Classes from "./pages/Classes";
 import { Provider } from "react-redux";
-const IntermediateClasses = React.lazy(() => import('./pages/IntermediateClasses'));
-const  BsAdpClasses= React.lazy(() => import('./pages/BsAdpClasses'));
+import IntermediateClasses from "./pages/IntermediateClasses";
+import BsAdpClasses from "./pages/BsAdpClasses";
 import ProfessorDashboard from "./pages/ProfessorDashboard";
 import ProfessorClasses from "./pages/ProfessorClasses";
 import NotFound from "./pages/NotFound";
 import { persistor, store } from "./store/store";
 import { PersistGate } from "redux-persist/integration/react";
-import TableSkeleton from "./components/TableSkeleton";
 
 const queryClient = new QueryClient();
 
@@ -45,7 +43,6 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-          <Suspense fallback={<div>Loading...</div>}>
             <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/admin" element={<AdminLayout />}>
@@ -78,7 +75,6 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
-            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
