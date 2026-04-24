@@ -136,7 +136,7 @@ const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
 
         <div className="mx-4 mb-6 flex items-center gap-3 rounded-xl bg-sidebar-hover px-4 py-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-            {user?.name.split(" ")[0][0]}{user?.name.split(" ")[1][0]}
+            {user?.name?.split(" ")[0]?.[0] ?? ""}{user?.name?.split(" ")[1]?.[0] ?? ""}
           </div>
           <div>
             <p className="text-sm font-semibold text-card">{user?.name}</p>
