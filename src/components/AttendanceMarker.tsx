@@ -223,7 +223,7 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
       {activeTab === "mark" && (
         <>
           {/* Date + quick actions */}
-          <div className="mb-6 flex flex-wrap items-center gap-3">
+          <div className="mb-6 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium text-foreground">Date:</label>
               <input type="date" value={date}
@@ -241,7 +241,7 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
               </span>
             )}
             {!loadingExisting && !hasExisting && (
-              <div className="flex items-center gap-1.5 ml-auto">
+              <div className="flex items-center gap-1.5 flex-wrap sm:ml-auto">
                 <span className="text-xs text-muted-foreground mr-1">Mark all:</span>
                 {(["P", "A", "L"] as AttendanceStatus[]).map((s) => (
                   <button key={s} onClick={() => setAllStatus(s)}
