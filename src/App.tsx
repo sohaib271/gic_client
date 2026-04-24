@@ -1,39 +1,54 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Login from "./pages/Login";
-import AdminLayout from "./components/AdminLayout";
-import ProfessorLayout from "./components/ProfessorLayout";
-import Dashboard from "./pages/Dashboard";
-import Students from "./pages/Students";
-import IntermediateStudents from "./pages/IntermediateStudents";
-import BsAdpStudents from "./pages/BsAdpStudents";
-import Attendance from "./pages/Attendance";
-import IntermediateAttendance from "./pages/IntermediateAttendance";
-import BsAdpAttendance from "./pages/BsAdpAttendance";
-import Subjects from "./pages/Subjects";
-import IntermediateSubjects from "./pages/IntermediateSubjects";
-import BsAdpSubjects from "./pages/BsAdpSubjects";
-import Score from "./pages/Score";
-import IntermediateScore from "./pages/IntermediateScore";
-import BsAdpScore from "./pages/BsAdpScore";
-import Accounts from "./pages/Accounts";
-import IntermediateAccounts from "./pages/IntermediateAccounts";
-import BsAdpAccounts from "./pages/BsAdpAccounts";
-import Faculty from "./pages/Faculty";
-import Classes from "./pages/Classes";
-import { Provider } from "react-redux";
-import IntermediateClasses from "./pages/IntermediateClasses";
-import BsAdpClasses from "./pages/BsAdpClasses";
-import ProfessorDashboard from "./pages/ProfessorDashboard";
-import ProfessorClasses from "./pages/ProfessorClasses";
-import NotFound from "./pages/NotFound";
+import LoadingScreen from "./components/LoadingScreen";
 import { persistor, store } from "./store/store";
-import { PersistGate } from "redux-persist/integration/react";
 
-const queryClient = new QueryClient();
+// Login is the entry route — keep eager so first paint isn't delayed by a chunk fetch.
+import Login from "./pages/Login";
+
+// Layouts and all inner pages are code-split to shrink the initial bundle.
+const AdminLayout = lazy(() => import("./components/AdminLayout"));
+const ProfessorLayout = lazy(() => import("./components/ProfessorLayout"));
+
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Students = lazy(() => import("./pages/Students"));
+const IntermediateStudents = lazy(() => import("./pages/IntermediateStudents"));
+const BsAdpStudents = lazy(() => import("./pages/BsAdpStudents"));
+const Attendance = lazy(() => import("./pages/Attendance"));
+const IntermediateAttendance = lazy(() => import("./pages/IntermediateAttendance"));
+const BsAdpAttendance = lazy(() => import("./pages/BsAdpAttendance"));
+const Subjects = lazy(() => import("./pages/Subjects"));
+const IntermediateSubjects = lazy(() => import("./pages/IntermediateSubjects"));
+const BsAdpSubjects = lazy(() => import("./pages/BsAdpSubjects"));
+const Score = lazy(() => import("./pages/Score"));
+const IntermediateScore = lazy(() => import("./pages/IntermediateScore"));
+const BsAdpScore = lazy(() => import("./pages/BsAdpScore"));
+const Accounts = lazy(() => import("./pages/Accounts"));
+const IntermediateAccounts = lazy(() => import("./pages/IntermediateAccounts"));
+const BsAdpAccounts = lazy(() => import("./pages/BsAdpAccounts"));
+const Faculty = lazy(() => import("./pages/Faculty"));
+const Classes = lazy(() => import("./pages/Classes"));
+const IntermediateClasses = lazy(() => import("./pages/IntermediateClasses"));
+const BsAdpClasses = lazy(() => import("./pages/BsAdpClasses"));
+const ProfessorDashboard = lazy(() => import("./pages/ProfessorDashboard"));
+const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <Provider store={store}>
@@ -43,6 +58,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <Suspense fallback={<LoadingScreen />}>
             <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/admin" element={<AdminLayout />}>
@@ -75,6 +91,7 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
