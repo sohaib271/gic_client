@@ -35,42 +35,42 @@ const navItems: NavItem[] = [
       { to: "/admin/classes/bs-adp", label: "BS / ADP" },
     ],
   },
-  {
-    to: "/admin/attendance",
-    icon: CalendarCheck,
-    label: "Attendance",
-    children: [
-      { to: "/admin/attendance/intermediate", label: "Intermediate" },
-      { to: "/admin/attendance/bs-adp", label: "BS / ADP" },
-    ],
-  },
-  {
-    to: "/admin/subjects",
-    icon: BookOpen,
-    label: "Subjects",
-    children: [
-      { to: "/admin/subjects/intermediate", label: "Intermediate" },
-      { to: "/admin/subjects/bs-adp", label: "BS / ADP" },
-    ],
-  },
-  {
-    to: "/admin/score",
-    icon: Trophy,
-    label: "Score",
-    children: [
-      { to: "/admin/score/intermediate", label: "Intermediate" },
-      { to: "/admin/score/bs-adp", label: "BS / ADP" },
-    ],
-  },
-  {
-    to: "/admin/accounts",
-    icon: Wallet,
-    label: "Accounts",
-    children: [
-      { to: "/admin/accounts/intermediate", label: "Intermediate" },
-      { to: "/admin/accounts/bs-adp", label: "BS / ADP" },
-    ],
-  },
+  // {
+  //   to: "/admin/attendance",
+  //   icon: CalendarCheck,
+  //   label: "Attendance",
+  //   children: [
+  //     { to: "/admin/attendance/intermediate", label: "Intermediate" },
+  //     { to: "/admin/attendance/bs-adp", label: "BS / ADP" },
+  //   ],
+  // },
+  // {
+  //   to: "/admin/subjects",
+  //   icon: BookOpen,
+  //   label: "Subjects",
+  //   children: [
+  //     { to: "/admin/subjects/intermediate", label: "Intermediate" },
+  //     { to: "/admin/subjects/bs-adp", label: "BS / ADP" },
+  //   ],
+  // },
+  // {
+  //   to: "/admin/score",
+  //   icon: Trophy,
+  //   label: "Score",
+  //   children: [
+  //     { to: "/admin/score/intermediate", label: "Intermediate" },
+  //     { to: "/admin/score/bs-adp", label: "BS / ADP" },
+  //   ],
+  // },
+  // {
+  //   to: "/admin/accounts",
+  //   icon: Wallet,
+  //   label: "Accounts",
+  //   children: [
+  //     { to: "/admin/accounts/intermediate", label: "Intermediate" },
+  //     { to: "/admin/accounts/bs-adp", label: "BS / ADP" },
+  //   ],
+  // },
 ];
 
 interface AdminSidebarProps {

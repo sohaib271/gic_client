@@ -31,6 +31,7 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 const Faculty = () => {
   const { data } = useDepartments();
   const { data: users, isLoading } = useUsers("proff");
+  console.log(users)
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<FacultyType>("proff");
   const [professors, setProfessors] = useState(mockProfessors);

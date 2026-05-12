@@ -613,7 +613,7 @@ export default function ClassDetailView({
           onClick={onViewSchedule}
           className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
         >
-          <CalendarDays className="h-4 w-4 text-primary" /> View Schedule
+          {/* <CalendarDays className="h-4 w-4 text-primary" /> View Schedule */}
         </button>
       </div>
 
