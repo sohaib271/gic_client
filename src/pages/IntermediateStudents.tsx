@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Trash2, X, Eye, ArrowRight } from "lucide-react";
+import { Pencil, Trash2, X, Eye, ArrowRight, Upload } from "lucide-react";
 import { interClasses } from "@/data/mockData";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,55 @@ const IntermediateStudents = () => {
   const [showModal, setShowModal] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [saving, setSaving] = useState(false);
+  // ── Add state for bulk upload ──
+const [bulkUploading, setBulkUploading] = useState(false);
+
+// ── Add handler ──
+const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  // ✅ Reset input so same file can be re-uploaded
+  e.target.value = "";
+
+  const allowedTypes = [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+    "application/vnd.ms-excel", // .xls
+  ];
+  if (!allowedTypes.includes(file.type)) {
+    toast.error("Only Excel files (.xlsx, .xls) are allowed");
+    return;
+  }
+
+  setBulkUploading(true);
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await UserService.bulkUploadStudents(formData);
+
+    if (res?.statusCode >= 400 || res?.error) {
+      toast.error(res?.message ?? "Bulk upload failed");
+      return;
+    }
+
+    toast.success(`${res.successful} students uploaded successfully`);
+
+    if (res.failed > 0) {
+      toast.warning(`⚠️ ${res.failed} rows failed`);
+      // Show individual row errors
+      res.errors?.forEach((err: { row: number; error: string }) => {
+        toast.error(`Row ${err.row}: ${err.error}`);
+      });
+    }
+
+    await refetch();
+  } catch {
+    toast.error("Network error during bulk upload");
+  } finally {
+    setBulkUploading(false);
+  }
+};
   // ✅ Local additions on top of server data
   // const [localStudents, setLocalStudents] = useState<any[]>([]);
   const [detailStudent, setDetailStudent] = useState<any | null>(null);
@@ -220,9 +269,40 @@ const IntermediateStudents = () => {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Student..." className="pl-9" />
         </div>
-        <Button onClick={() => { setForm({ ...defaultForm, class: selectedClass }); setShowModal(true); }} className="ml-auto">
-          <Plus className="mr-1 h-4 w-4" /> Add More
-        </Button>
+       {/* ── Replace the existing button area in the filter row ── */}
+<div className="flex items-center gap-2 ml-auto">
+  {/* ✅ Hidden file input */}
+  <input
+    id="bulk-upload-intermediate"
+    type="file"
+    accept=".xlsx,.xls"
+    className="hidden"
+    onChange={handleBulkUpload}
+  />
+
+  {/* ✅ Upload Bulk button */}
+  <Button
+    variant="outline"
+    disabled={bulkUploading}
+    onClick={() => document.getElementById("bulk-upload-intermediate")?.click()}
+  >
+    {bulkUploading ? (
+      <>
+        <span className="mr-1 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        Uploading...
+      </>
+    ) : (
+      <>
+        <Upload className="mr-1 h-4 w-4" /> Upload Bulk
+      </>
+    )}
+  </Button>
+
+  {/* ✅ Existing Add More button */}
+  <Button onClick={() => { setForm({ ...defaultForm, class: selectedClass }); setShowModal(true); }}>
+    <Plus className="mr-1 h-4 w-4" /> Add More
+  </Button>
+</div>
       </motion.div>
 
       {/* Table */}

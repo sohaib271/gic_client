@@ -31,6 +31,19 @@ class UserService{
     return result;
   }
 
+  // userService.ts — add this method
+static async bulkUploadStudents(formData: FormData) {
+  const res = await fetch(`${API}/users/students/bulk-upload`, {
+    method: "POST",
+    headers: {
+      // ✅ Do NOT set Content-Type — browser sets it automatically with boundary for FormData
+      Authorization: `Bearer ${this.getToken()}`,
+    },
+    body: formData,
+  });
+  return res.json();
+}
+
   static async addStudent(data){
     const res=await fetch(`${API}/users/student`,{method:"POST",headers:this.authHeaders(),body:JSON.stringify(data)});
 

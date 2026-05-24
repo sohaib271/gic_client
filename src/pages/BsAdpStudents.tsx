@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Trash2, X, Eye, ArrowRight } from "lucide-react";
+import { Pencil, Trash2, X, Eye, ArrowRight, Upload } from "lucide-react";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +58,7 @@ const defaultForm = {
 
 const BsAdpStudents = () => {
   const { data: departments } = useDepartments();
-  const { data: users, isLoading } = useUsers("student");
+  const { data: users, isLoading,refetch } = useUsers("student");
 
   // ✅ Departments that serve BS/ADP students
   const bsAdpDepts = useMemo(() =>
@@ -81,6 +81,56 @@ const BsAdpStudents = () => {
   const [localStudents, setLocalStudents] = useState<any[]>([]);
   const [detailStudent, setDetailStudent] = useState<any | null>(null);
   const [form, setForm] = useState(defaultForm);
+
+  const [bulkUploading, setBulkUploading] = useState(false);
+  
+  // ── Add handler ──
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+  
+    // ✅ Reset input so same file can be re-uploaded
+    e.target.value = "";
+  
+    const allowedTypes = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+      "application/vnd.ms-excel", // .xls
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only Excel files (.xlsx, .xls) are allowed");
+      return;
+    }
+  
+    setBulkUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+  
+      const res = await UserService.bulkUploadStudents(formData);
+  
+      if (res?.statusCode >= 400 || res?.error) {
+        toast.error(res?.message ?? "Bulk upload failed");
+        return;
+      }
+  
+      toast.success(`${res.successful} students uploaded successfully`);
+  
+      if (res.failed > 0) {
+        toast.warning(`⚠️ ${res.failed} rows failed`);
+        // Show individual row errors
+        res.errors?.forEach((err: { row: number; error: string }) => {
+          toast.error(`Row ${err.row}: ${err.error}`);
+        });
+      }
+  
+      await refetch();
+    } catch {
+      toast.error("Network error during bulk upload");
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+  
 
   const set = (key: string) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -245,11 +295,39 @@ const BsAdpStudents = () => {
           />
         </div>
 
-        <Button
-          onClick={() => { setForm({ ...defaultForm, category: selectedProgram }); setShowModal(true); }}
-          className="ml-auto">
-          <Plus className="mr-1 h-4 w-4" /> Add More
-        </Button>
+      {/* ── Replace the existing Add More button area ── */}
+<div className="flex items-center gap-2 ml-auto">
+  <input
+    id="bulk-upload-bsadp"
+    type="file"
+    accept=".xlsx,.xls"
+    className="hidden"
+    onChange={handleBulkUpload}
+  />
+
+  <Button
+    variant="outline"
+    disabled={bulkUploading}
+    onClick={() => document.getElementById("bulk-upload-bsadp")?.click()}
+  >
+    {bulkUploading ? (
+      <>
+        <span className="mr-1 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        Uploading...
+      </>
+    ) : (
+      <>
+        <Upload className="mr-1 h-4 w-4" /> Upload Bulk
+      </>
+    )}
+  </Button>
+
+  <Button
+    onClick={() => { setForm({ ...defaultForm, category: selectedProgram }); setShowModal(true); }}
+  >
+    <Plus className="mr-1 h-4 w-4" /> Add More
+  </Button>
+</div>
       </motion.div>
 
       {/* Table */}
