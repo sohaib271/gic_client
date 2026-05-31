@@ -685,8 +685,8 @@ export default function ClassDetailView({
                 className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
               >
                 {/* Teacher row */}
-                <div className="flex items-center justify-between gap-3 p-4">
-                  <div className="flex items-center gap-3 min-w-0">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 shrink-0">
                       <UserCircle className="h-6 w-6 text-primary" />
                     </div>
@@ -699,7 +699,7 @@ export default function ClassDetailView({
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
                     <button
                       onClick={() =>
                         isEditing

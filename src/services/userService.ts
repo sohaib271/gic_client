@@ -67,7 +67,6 @@ static async bulkUploadStudents(formData: FormData) {
     return result;
   }
 
-  // services/classService.ts — add this
 static async getTeacherSchedule (teacherId: string){
   const res = await fetch(`${API}/users/get-schedule/${teacherId}`,{method:"GET",headers:this.authHeaders()});
   return res.json();

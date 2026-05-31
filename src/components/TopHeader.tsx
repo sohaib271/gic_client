@@ -64,7 +64,7 @@ const {user}=useAuth()
 
         <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-secondary transition-colors cursor-pointer">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            {user?.name?.split(" ")[0][0]}{user?.name?.split(" ")[1]?.[0]}
+            {user?.name?.split(" ")[0]?.[0] ?? ""}{user?.name?.split(" ")[1]?.[0] ?? ""}
           </div>
           <div className="hidden sm:block">
             <p className="text-sm font-medium text-foreground leading-tight">{user?.name}</p>

@@ -12,9 +12,6 @@ class ClassService {
       Authorization: `Bearer ${this.getToken()}`,
     };
   }
-
-  // ─── Classes ────────────────────────────────────────────────
-
   static async createClass(data: any) {
     const res = await fetch(`${API}/class/create`, {
       method: "POST",
@@ -74,12 +71,6 @@ class ClassService {
     return res.json();
   }
 
-  // ─── Teachers ───────────────────────────────────────────────
-
-  /**
-   * Assign a teacher to a class with subject + schedule.
-   * POST /class/assign-teacher-to-class/:classId
-   */
   static async addTeacherToClass(
     classId: string,
     payload: {
@@ -96,10 +87,6 @@ class ClassService {
     return res.json();
   }
 
-  /**
-   * Remove a teacher from a class.
-   * PATCH /class/remove-teacher-from-class/:classId/:teacherId
-   */
   static async removeTeacherFromClass(classId: string, teacherId: string) {
     const res = await fetch(
       `${API}/class/remove-teacher-from-class/${classId}/${teacherId}`,
@@ -111,10 +98,6 @@ class ClassService {
     return res.json();
   }
 
-  /**
-   * Update a teacher's subject or full schedule (replaces existing schedule).
-   * PATCH /class/:id/assignes/:teacherId
-   */
   static async updateAssignedTeacher(
     classId: string,
     teacherId: string,
@@ -127,13 +110,6 @@ class ClassService {
     });
     return res.json();
   }
-
-  // ─── Teacher Schedule ────────────────────────────────────────
-
-  /**
-   * Replace a teacher's entire schedule.
-   * PATCH /class/:id/assignes/:teacherId/schedule
-   */
   static async updateTeacherSchedule(
     classId: string,
     teacherId: string,
@@ -150,10 +126,6 @@ class ClassService {
     return res.json();
   }
 
-  /**
-   * Append new schedule entries to a teacher (no duplicates allowed by backend).
-   * POST /class/:id/assignes/:teacherId/schedule
-   */
   static async addTeacherSchedule(
     classId: string,
     teacherId: string,
@@ -170,12 +142,6 @@ class ClassService {
     return res.json();
   }
 
-  // ─── Students ───────────────────────────────────────────────
-
-  /**
-   * Add a single student to a class.
-   * POST /class/add-student-in-class/:classId/:studentId
-   */
   static async addStudentToClass(classId: string, studentId: string) {
     const res = await fetch(
       `${API}/class/add-student-in-class/${classId}/${studentId}`,
@@ -187,10 +153,6 @@ class ClassService {
     return res.json();
   }
 
-  /**
-   * Remove a student from a class.
-   * PATCH /class/remove-student-from-class/:classId/:studentId
-   */
   static async removeStudentFromClass(classId: string, studentId: string) {
     const res = await fetch(
       `${API}/class/remove-student-from-class/${classId}/${studentId}`,
@@ -202,9 +164,6 @@ class ClassService {
     return res.json();
   }
 
-  // ─── Attendance ─────────────────────────────────────────────
-
- // classService.ts — add these
 static async markBulkAttendance(data: {
   classId: string;
   teacherId: string;

@@ -355,17 +355,17 @@ const BsAdpClasses = () => {
               transition={{ delay: i * 0.05 }}
               onClick={() => { setSelectedLecture(lec.id); setView("lectureDetail"); }}
               className="group cursor-pointer rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-lg hover:-translate-y-0.5 transition-all">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                     <BookOpen className="h-5 w-5 text-primary" />
                   </div>
-                  <div>
-                    <h3 className="font-display text-sm font-bold text-foreground">{lec.subject}</h3>
-                    <p className="text-xs text-muted-foreground">{lec.teacher}</p>
+                  <div className="min-w-0">
+                    <h3 className="font-display text-sm font-bold text-foreground truncate">{lec.subject}</h3>
+                    <p className="text-xs text-muted-foreground truncate">{lec.teacher}</p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right ml-auto">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" /> {lec.time} · {lec.duration}
                   </div>
