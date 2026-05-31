@@ -31,6 +31,22 @@ class UserService{
     return result;
   }
 
+  // userService.ts — add these
+static async getStruckOffStudents() {
+  const res = await fetch(`${API}/class/struck-off-students`, {
+    method: "GET",
+    headers: this.authHeaders(),
+  });
+  return res.json();
+}
+
+static async getStudentAttendance(classId: string, studentId: string) {
+  const res = await fetch(`${API}/attendance/student/${classId}/${studentId}`, {
+    method: "GET",
+    headers: this.authHeaders(),
+  });
+  return res.json();
+}
   // userService.ts — add this method
 static async bulkUploadStudents(formData: FormData) {
   const res = await fetch(`${API}/users/students/bulk-upload`, {

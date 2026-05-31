@@ -217,6 +217,15 @@ static async getMyAttendanceHistory(teacherId: string, classId?: string) {
     });
     return res.json();
   }
+
+  // classService.ts — add these
+static async getAttendanceByDate(classId: string, date: string) {
+  const res = await fetch(`${API}/attendance/class/${classId}?date=${date}`, {
+    method: "GET",
+    headers: this.authHeaders(),
+  });
+  return res.json();
+}
 }
 
 export default ClassService;
