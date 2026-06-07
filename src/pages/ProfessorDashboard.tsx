@@ -1,11 +1,14 @@
 // ProfessorDashboard.tsx
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, QrCode } from "lucide-react";
 import FacultyDetailView from "@/components/FacultyDetailView";
+import { useState } from "react";
+import QRScanner from "@/components/QRScanner";
 
 const ProfessorDashboard = () => {
   const user = useSelector((state: any) => state?.user.user);
+  const [showScanner, setShowScanner] = useState(false);
 
   // ✅ Guard — user not yet in store (e.g. first load before persist kicks in)
   if (!user) {
@@ -36,12 +39,21 @@ const ProfessorDashboard = () => {
       animate={{ opacity: 1, y: 0 }}
       className="p-4 sm:p-6"
     >
+      
+        
+        <button onClick={() => setShowScanner(true)}
+          className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow transition-colors">
+          <QrCode className="h-4 w-4" />
+          Scan QR
+        </button>
+    
       <FacultyDetailView
         faculty={user}
         type="proff"
         onBack={() => {}}
         autoShowSchedule
       />
+       {showScanner && <QRScanner onClose={() => setShowScanner(false)} />}
     </motion.div>
   );
 };
