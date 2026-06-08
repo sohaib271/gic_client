@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, Plus, X, ChevronRight, QrCode } from "lucide-react";
+import { Eye, Plus, X, ChevronRight } from "lucide-react";
 import { professors as mockProfessors, principals as mockPrincipals, vicePrincipals as mockVicePrincipals } from "@/data/mockData";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import UserService from "@/services/userService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import FacultyDetailView from "@/components/FacultyDetailView";
-import TeacherQRModal from "@/components/TeacherQRModal";
 
 type FacultyType = "proff" | "principal" | "vice_principal";
 
@@ -34,7 +33,6 @@ const Faculty = () => {
   const { data: users, isLoading } = useUsers("proff");
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<FacultyType>("proff");
-  const [qrTeacher, setQrTeacher] = useState<any | null>(null);
   const [professors, setProfessors] = useState(mockProfessors);
   const [principalList, setPrincipalList] = useState(mockPrincipals);
   const [vpList, setVpList] = useState(mockVicePrincipals);
@@ -112,7 +110,6 @@ const Faculty = () => {
 
   if (isLoading) return <TableSkeleton rows={6} cols={5} />;
 
-  // Detail view
   if (detailFaculty) {
     return (
       <FacultyDetailView
@@ -132,7 +129,7 @@ const Faculty = () => {
           <thead>
             <tr className="border-b border-border">
               {["S.No", "First Name", "Last Name", "Date of Joining",
-                ...(isProfessor ? ["HOD", "Department"] : []), "Action","QR"].map((h) => (
+                ...(isProfessor ? ["HOD", "Department"] : []), "Action"].map((h) => (
                 <th key={h} className="table-header p-3 sm:p-4 text-left text-xs sm:text-sm font-medium text-muted-foreground">{h}</th>
               ))}
             </tr>
@@ -162,23 +159,13 @@ const Faculty = () => {
                     <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> View Detail
                   </Button>
                 </td>
-                  {isProfessor && (
-  <td className="p-3 sm:p-4">
-    <Button variant="ghost" size="sm"
-      className="gap-1.5 text-muted-foreground hover:text-primary text-xs sm:text-sm"
-      onClick={() => setQrTeacher(m)}>
-      <QrCode className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> QR
-    </Button>
-  </td>
-)}
               </motion.tr>
             ))}
             {displayData?.length === 0 && (
               <tr>
-                <td colSpan={isProfessor ? 7 : 5} className="p-8 text-center text-sm text-muted-foreground">No records found.</td>
+                <td colSpan={isProfessor ? 6 : 5} className="p-8 text-center text-sm text-muted-foreground">No records found.</td>
               </tr>
             )}
-            
           </tbody>
         </table>
       </div>
@@ -306,13 +293,6 @@ const Faculty = () => {
           </motion.div>
         )}
       </AnimatePresence>
-      
-      {qrTeacher && (
-  <TeacherQRModal
-    teacher={qrTeacher}
-    onClose={() => setQrTeacher(null)}
-  />
-)}
     </div>
   );
 };

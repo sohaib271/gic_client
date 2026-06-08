@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, BookOpen, CalendarCheck, TrendingUp, GraduationCap,
-  ChevronLeft, ChevronRight, X, Search, AlertTriangle,
-  Clock, Check, Ban, FileText, Download, Filter,
+  ChevronLeft, ChevronRight, X, Search,
+  Clock, Check, Ban, FileText, Download, Filter, QrCode, RefreshCw,
 } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { useClasses } from "@/hooks/useClasses";
@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import UserService from "@/services/userService";
 import ClassService from "@/services/classService";
 import { toast } from "sonner";
+import TeacherAttendanceService from "@/services/teacherAttendanceService";
 
 const STUDENTS_PER_PAGE = 10;
 
@@ -28,7 +29,7 @@ const fetchClassAttendance = async (classId: string, date: string) => {
   return res.json();
 };
 
-type DashboardPanel = "students" | "attendance" | null;
+type DashboardPanel = "students" | "attendance" | "facultyQR" | null;
 
 const Dashboard = () => {
   const { data: allUsers } = useUsers("");
@@ -49,6 +50,12 @@ const Dashboard = () => {
   const [reportDate,        setReportDate]         = useState(() => new Date().toISOString().split("T")[0]);
   const [reportData,        setReportData]         = useState<any | null>(null);
   const [generatingReport,  setGeneratingReport]   = useState(false);
+
+  // ── Faculty QR panel state
+  const [qrDataUrl,      setQrDataUrl]      = useState<string | null>(null);
+  const [qrLoading,      setQrLoading]      = useState(false);
+  const [qrError,        setQrError]        = useState<string | null>(null);
+  const [qrCountdown,    setQrCountdown]    = useState(300);
 
   // ── Derived counts
   const students    = useMemo(() => (allUsers || []).filter((u: any) => u.role === "student"), [allUsers]);
@@ -98,6 +105,7 @@ const Dashboard = () => {
     { label: "Total Classes",  value: String(totalClasses),       icon: BookOpen,     panel: null },
     { label: "Attendance",     value: "View Report",              icon: CalendarCheck, panel: "attendance" as DashboardPanel },
     { label: "Faculty",        value: String(professors.length),  icon: GraduationCap, panel: null },
+    { label: "Faculty QR",     value: "View QR Code",             icon: QrCode,        panel: "facultyQR"  as DashboardPanel },
   ];
 
   // ── Generate attendance report
@@ -139,10 +147,48 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
   };
 
+  // ── Faculty QR: fetch shared QR (no teacherId needed)
+  const fetchFacultyQR = async () => {
+    setQrLoading(true);
+    setQrError(null);
+    setQrDataUrl(null);
+    setQrCountdown(300);
+    try {
+      const res = await TeacherAttendanceService.getSharedQR();
+      if (!res.success) { setQrError(res?.message ?? "Failed to generate QR"); return; }
+      setQrDataUrl(res.qrDataUrl);
+    } catch (err: any) {
+      setQrError(err?.message ?? "Network error");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  // ── Auto-fetch when panel opens
+  useEffect(() => {
+    if (activePanel === "facultyQR") fetchFacultyQR();
+    else { setQrDataUrl(null); setQrError(null); setQrCountdown(300); }
+  }, [activePanel]);
+
+  // ── Countdown auto-refresh
+  useEffect(() => {
+    if (!qrDataUrl) return;
+    const interval = setInterval(() => {
+      setQrCountdown((c) => {
+        if (c <= 1) { fetchFacultyQR(); return 300; }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [qrDataUrl]);
+
+  const qrMins = String(Math.floor(qrCountdown / 60)).padStart(2, "0");
+  const qrSecs = String(qrCountdown % 60).padStart(2, "0");
+
   return (
     <div className="space-y-6">
       {/* ── Stats Cards ── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -548,6 +594,75 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">Select a class and date, then click Generate Report.</p>
               </div>
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════ FACULTY QR PANEL ══════════ */}
+      <AnimatePresence>
+        {activePanel === "facultyQR" && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <QrCode className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-lg font-bold text-foreground">Faculty QR Code</h2>
+              </div>
+              <button
+                onClick={() => setActivePanel(null)}
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center gap-4 p-8">
+              <p className="text-sm text-muted-foreground text-center max-w-sm">
+                All professors scan this single QR code to mark their attendance. Each professor's record is saved against their own account via their login session.
+              </p>
+
+              {qrLoading && (
+                <div className="h-52 w-52 rounded-xl border border-border bg-secondary/30 flex items-center justify-center animate-pulse">
+                  <p className="text-xs text-muted-foreground">Generating...</p>
+                </div>
+              )}
+
+              {qrError && !qrLoading && (
+                <div className="h-52 w-52 rounded-xl border border-destructive/30 bg-destructive/5 flex flex-col items-center justify-center gap-2">
+                  <p className="text-xs text-destructive text-center px-4">{qrError}</p>
+                  <button onClick={fetchFacultyQR} className="text-xs text-primary underline">Retry</button>
+                </div>
+              )}
+
+              {qrDataUrl && !qrLoading && (
+                <>
+                  <div className="rounded-xl border-2 border-primary/20 p-3 bg-white">
+                    <img src={qrDataUrl} alt="Faculty QR Code" className="h-48 w-48" />
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className={`font-mono font-semibold ${qrCountdown <= 60 ? "text-destructive" : "text-foreground"}`}>
+                      {qrMins}:{qrSecs}
+                    </span>
+                    <span className="text-xs text-muted-foreground">until refresh</span>
+                  </div>
+
+                  <button
+                    onClick={fetchFacultyQR}
+                    disabled={qrLoading}
+                    className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Regenerate QR
+                  </button>
+                </>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

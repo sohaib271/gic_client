@@ -34,6 +34,16 @@ static async getTodayStatus() {
   return res.json();
 }
 
+static async getSharedQR() {
+  const res = await fetch(`${API}/teacher/qr`, {
+    method:  "GET",
+    headers: this.authHeaders(),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result?.message ?? "Failed to generate QR");
+  return result;
+}
+
 static async getTeacherQR(teacherId: string) {
   const res = await fetch(`${API}/teacher/qr/${teacherId}`, {
     method: "GET",
