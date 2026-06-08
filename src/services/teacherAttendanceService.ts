@@ -25,6 +25,15 @@ static async markTeacherAttendanceByQR(data: {
   return res.json();
 }
 
+// services/teacherAttendanceService.ts — add
+static async getTodayStatus() {
+  const res = await fetch(`${API}/teacher/today-status`, {
+    method: "GET",
+    headers: this.authHeaders(),
+  });
+  return res.json();
+}
+
 static async getTeacherQR(teacherId: string) {
   const res = await fetch(`${API}/teacher/qr/${teacherId}`, {
     method: "GET",
