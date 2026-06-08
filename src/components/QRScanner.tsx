@@ -1,25 +1,54 @@
-// components/QRScanner.tsx
+// QRScanner.tsx — full updated component
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, CheckCircle, AlertCircle, Camera } from "lucide-react";
+import { X, MapPin, CheckCircle, AlertCircle, Camera, Clock } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 import TeacherAttendanceService from "@/services/teacherAttendanceService";
-
 
 interface Props {
   onClose: () => void;
 }
 
-type ScanState = "idle" | "scanning" | "getting-location" | "submitting" | "success" | "error";
+type ScanState = "loading" | "idle" | "scanning" | "getting-location" | "submitting" | "success" | "error";
+
+const formatTime = (isoStr: string) => {
+  const d = new Date(isoStr);
+  return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+};
 
 const QRScanner = ({ onClose }: Props) => {
-  const scannerRef    = useRef<Html5Qrcode | null>(null);
-  const containerRef  = useRef<HTMLDivElement>(null);
-  const [scanState,   setScanState]   = useState<ScanState>("idle");
-  const [attendType,  setAttendType]  = useState<"check-in" | "check-out">("check-in");
-  const [resultMsg,   setResultMsg]   = useState("");
+  const scannerRef   = useRef<Html5Qrcode | null>(null);
+  const [scanState,  setScanState]  = useState<ScanState>("loading");
+  const [attendType, setAttendType] = useState<"check-in" | "check-out">("check-in");
+  const [resultMsg,  setResultMsg]  = useState("");
   const [cameraError, setCameraError] = useState<string | null>(null);
+
+  // ✅ Today's status
+  const [hasCheckedIn,   setHasCheckedIn]   = useState(false);
+  const [hasCheckedOut,  setHasCheckedOut]  = useState(false);
+  const [checkInTime,    setCheckInTime]    = useState<string | null>(null);
+  const [checkOutTime,   setCheckOutTime]   = useState<string | null>(null);
+
+  // ── Load today's status on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await TeacherAttendanceService.getTodayStatus();
+        if (res?.success) {
+          setHasCheckedIn(res.hasCheckedIn);
+          setHasCheckedOut(res.hasCheckedOut);
+          setCheckInTime(res.checkInTime);
+          setCheckOutTime(res.checkOutTime);
+          // ✅ Auto-select the appropriate type
+          if (!res.hasCheckedIn)  setAttendType("check-in");
+          else if (!res.hasCheckedOut) setAttendType("check-out");
+        }
+      } catch { /* silently fail — still allow manual selection */ }
+      finally { setScanState("idle"); }
+    };
+    load();
+  }, []);
 
   const stopScanner = async () => {
     try {
@@ -31,10 +60,28 @@ const QRScanner = ({ onClose }: Props) => {
   };
 
   const startScanner = async () => {
+    // ✅ Block if both already done
+    if (hasCheckedIn && hasCheckedOut) {
+      toast.error("You have already completed check-in and check-out for today");
+      return;
+    }
+    // ✅ Block duplicate type
+    if (attendType === "check-in" && hasCheckedIn) {
+      toast.error("You have already checked in today");
+      return;
+    }
+    if (attendType === "check-out" && hasCheckedOut) {
+      toast.error("You have already checked out today");
+      return;
+    }
+    // ✅ Block check-out without check-in
+    if (attendType === "check-out" && !hasCheckedIn) {
+      toast.error("You must check in first");
+      return;
+    }
+
     setCameraError(null);
     setScanState("scanning");
-
-    // ✅ Small delay to ensure DOM element is mounted
     await new Promise((r) => setTimeout(r, 100));
 
     const scanner = new Html5Qrcode("qr-scanner-container");
@@ -50,7 +97,7 @@ const QRScanner = ({ onClose }: Props) => {
         },
         () => { /* ignore frame errors */ }
       );
-    } catch (err: any) {
+    } catch {
       setCameraError("Camera access denied. Please allow camera permission.");
       setScanState("idle");
     }
@@ -59,27 +106,22 @@ const QRScanner = ({ onClose }: Props) => {
   const handleScannedQR = async (rawText: string) => {
     setScanState("getting-location");
     try {
-      // 1. Parse QR payload
       const payload = JSON.parse(rawText);
 
-      // 2. Check expiry
       if (payload.exp && Date.now() > payload.exp) {
         setScanState("error");
         setResultMsg("QR code has expired. Ask admin to regenerate.");
         return;
       }
 
-      // 3. Get GPS location
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
+          enableHighAccuracy: true, timeout: 10000,
         });
       });
 
       setScanState("submitting");
 
-      // 4. Submit attendance
       const res = await TeacherAttendanceService.markTeacherAttendanceByQR({
         type: attendType,
         gps: {
@@ -90,35 +132,39 @@ const QRScanner = ({ onClose }: Props) => {
 
       if (!res.success) {
         setScanState("error");
+        // ✅ Surface backend duplicate/ordering errors clearly
         setResultMsg(res?.message ?? "Failed to mark attendance");
         return;
       }
 
+      // ✅ Update local status so UI reflects the change immediately
+      if (attendType === "check-in") {
+        setHasCheckedIn(true);
+        setCheckInTime(new Date().toISOString());
+      } else {
+        setHasCheckedOut(true);
+        setCheckOutTime(new Date().toISOString());
+      }
+
       setScanState("success");
-      setResultMsg(`${attendType === "check-in" ? "Checked in" : "Checked out"} successfully!`);
-      toast.success(resultMsg || "Attendance marked!");
+      setResultMsg(res.message ?? `${attendType === "check-in" ? "Checked in" : "Checked out"} successfully!`);
 
     } catch (err: any) {
       setScanState("error");
-      if (err?.code === 1) {
-        setResultMsg("Location access denied. Enable GPS to mark attendance.");
-      } else if (err instanceof SyntaxError) {
-        setResultMsg("Invalid QR code. Please scan the correct attendance QR.");
-      } else {
-        setResultMsg(err?.message ?? "Something went wrong");
-      }
+      if (err?.code === 1)             setResultMsg("Location access denied. Enable GPS.");
+      else if (err instanceof SyntaxError) setResultMsg("Invalid QR code. Please scan the correct attendance QR.");
+      else                             setResultMsg(err?.message ?? "Something went wrong");
     }
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => { stopScanner(); };
-  }, []);
+  useEffect(() => { return () => { stopScanner(); }; }, []);
 
-  const handleClose = async () => {
-    await stopScanner();
-    onClose();
-  };
+  const handleClose = async () => { await stopScanner(); onClose(); };
+
+  const bothDone     = hasCheckedIn && hasCheckedOut;
+  const typeBlocked  = (attendType === "check-in" && hasCheckedIn) ||
+                       (attendType === "check-out" && hasCheckedOut) ||
+                       (attendType === "check-out" && !hasCheckedIn);
 
   return (
     <AnimatePresence>
@@ -141,48 +187,118 @@ const QRScanner = ({ onClose }: Props) => {
           </div>
 
           <div className="p-5 space-y-4">
-            {/* Check-in / Check-out toggle */}
-            {(scanState === "idle" || scanState === "scanning") && (
-              <div className="flex gap-2">
-                {(["check-in", "check-out"] as const).map((t) => (
-                  <button key={t} onClick={() => setAttendType(t)}
-                    className={`flex-1 rounded-lg border py-2 text-xs font-semibold capitalize transition-colors ${
-                      attendType === t
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border text-muted-foreground hover:bg-secondary"
-                    }`}>
-                    {t}
-                  </button>
-                ))}
+
+            {/* ✅ Today's status bar */}
+            {(hasCheckedIn || hasCheckedOut) && scanState !== "success" && (
+              <div className="rounded-lg border border-border bg-secondary/30 px-4 py-3 space-y-1.5">
+                <p className="text-xs font-semibold text-foreground">Today's Status</p>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <div className={`h-2 w-2 rounded-full ${hasCheckedIn ? "bg-green-500" : "bg-muted-foreground/30"}`} />
+                    <span className={hasCheckedIn ? "text-green-700" : "text-muted-foreground"}>
+                      Check-in {checkInTime ? formatTime(checkInTime) : "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <div className={`h-2 w-2 rounded-full ${hasCheckedOut ? "bg-blue-500" : "bg-muted-foreground/30"}`} />
+                    <span className={hasCheckedOut ? "text-blue-700" : "text-muted-foreground"}>
+                      Check-out {checkOutTime ? formatTime(checkOutTime) : "—"}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Scanner container */}
+            {/* Loading state */}
+            {scanState === "loading" && (
+              <div className="flex justify-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+              </div>
+            )}
+
+            {/* Both done */}
+            {bothDone && scanState === "idle" && (
+              <div className="flex flex-col items-center gap-3 py-4">
+                <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <p className="text-sm font-semibold text-green-700 text-center">
+                  All done for today!
+                </p>
+                <p className="text-xs text-muted-foreground text-center">
+                  You have completed both check-in and check-out.
+                </p>
+                <button onClick={handleClose}
+                  className="rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors">
+                  Close
+                </button>
+              </div>
+            )}
+
+            {/* Check-in / Check-out toggle */}
+            {!bothDone && (scanState === "idle" || scanState === "scanning") && (
+              <div className="flex gap-2">
+                {(["check-in", "check-out"] as const).map((t) => {
+                  const isDone    = t === "check-in" ? hasCheckedIn : hasCheckedOut;
+                  const isBlocked = isDone || (t === "check-out" && !hasCheckedIn);
+                  return (
+                    <button key={t} onClick={() => !isBlocked && setAttendType(t)}
+                      disabled={isBlocked}
+                      className={`flex-1 rounded-lg border py-2 text-xs font-semibold capitalize transition-colors relative ${
+                        isDone
+                          ? "border-green-300 bg-green-50 text-green-600 cursor-not-allowed"
+                          : attendType === t
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : isBlocked
+                              ? "border-border text-muted-foreground/40 cursor-not-allowed bg-secondary/30"
+                              : "border-border text-muted-foreground hover:bg-secondary"
+                      }`}>
+                      {t}
+                      {isDone && (
+                        <span className="ml-1.5 text-[10px] font-normal opacity-80">✓ done</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Scanner */}
             {scanState === "scanning" && (
               <div className="relative">
-                <div id="qr-scanner-container" ref={containerRef}
-                  className="w-full rounded-xl overflow-hidden border border-border" />
-                {/* Overlay guide */}
+                <div id="qr-scanner-container" className="w-full rounded-xl overflow-hidden border border-border" />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="h-44 w-44 border-2 border-primary rounded-lg opacity-70" />
                 </div>
                 <p className="text-center text-xs text-muted-foreground mt-2">
                   Align QR code within the frame
                 </p>
+                <button onClick={() => { stopScanner(); setScanState("idle"); }}
+                  className="mt-2 w-full text-center text-xs text-muted-foreground hover:text-foreground underline">
+                  Cancel
+                </button>
               </div>
             )}
 
-            {/* Idle state */}
-            {scanState === "idle" && (
-              <div className="flex flex-col items-center gap-4 py-4">
-                <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Camera className="h-10 w-10 text-primary" />
-                </div>
+            {/* Idle — Start Camera button */}
+            {!bothDone && scanState === "idle" && (
+              <div className="flex flex-col items-center gap-3">
                 {cameraError && (
                   <p className="text-xs text-destructive text-center">{cameraError}</p>
                 )}
-                <button onClick={startScanner}
-                  className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
+                {/* ✅ Show why button is disabled */}
+                {typeBlocked && !bothDone && (
+                  <p className="text-xs text-amber-600 text-center bg-amber-50 rounded-lg px-3 py-2 w-full">
+                    {attendType === "check-in" && hasCheckedIn
+                      ? "Already checked in today"
+                      : attendType === "check-out" && !hasCheckedIn
+                        ? "Check in first before checking out"
+                        : "Already checked out today"}
+                  </p>
+                )}
+                <button onClick={startScanner} disabled={typeBlocked}
+                  className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  <Camera className="h-4 w-4" />
                   Start Camera
                 </button>
               </div>
@@ -195,7 +311,7 @@ const QRScanner = ({ onClose }: Props) => {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   {scanState === "getting-location"
                     ? <><MapPin className="h-4 w-4" /> Getting your location...</>
-                    : "Marking attendance..."}
+                    : <><Clock className="h-4 w-4" /> Marking attendance...</>}
                 </div>
               </div>
             )}
@@ -207,6 +323,13 @@ const QRScanner = ({ onClose }: Props) => {
                   <CheckCircle className="h-8 w-8 text-green-600" />
                 </div>
                 <p className="text-sm font-semibold text-green-700 text-center">{resultMsg}</p>
+                {/* ✅ Offer to scan again for check-out if just checked in */}
+                {attendType === "check-in" && !hasCheckedOut && (
+                  <button onClick={() => { setAttendType("check-out"); setScanState("idle"); setResultMsg(""); }}
+                    className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary transition-colors">
+                    Also mark check-out?
+                  </button>
+                )}
                 <button onClick={handleClose}
                   className="rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors">
                   Done
