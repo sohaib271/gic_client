@@ -67,6 +67,18 @@ static async bulkUploadStudents(formData: FormData) {
     return result;
   }
 
+  static async updateUser(id:string,data){
+    const res=await fetch(`${API}/users/${id}`,{method:"PUT",headers:this.authHeaders(),body:JSON.stringify(data)});
+    const result=await res.json();
+    return result;
+  }
+
+  static async deleteUser(id:string){
+    const res=await fetch(`${API}/users/${id}`,{method:"DELETE",headers:this.authHeaders()});
+    const result=await res.json();
+    return result;
+  }
+
 static async getTeacherSchedule (teacherId: string){
   const res = await fetch(`${API}/users/get-schedule/${teacherId}`,{method:"GET",headers:this.authHeaders()});
   return res.json();

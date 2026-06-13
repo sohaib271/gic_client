@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Trash2, X, Eye, ArrowRight, Upload } from "lucide-react";
-import { interClasses } from "@/data/mockData";
+import ConfirmDeleteModal from "@/components/ConfirmDelete"
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,6 @@ const defaultForm = {
 const IntermediateStudents = () => {
   const user=useSelector((state:any)=>state.user.user);
   const { data: departments } = useDepartments();
-  console.log(departments)
   const { data: users, refetch, isLoading } = useUsers("student");
 
   const intermediateDept = useMemo(() =>
@@ -66,6 +65,9 @@ const IntermediateStudents = () => {
   const [showModal, setShowModal] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<any | null>(null);
+const [deleteTarget,   setDeleteTarget]   = useState<any | null>(null);
+const [deleting,       setDeleting]       = useState(false);
   // ── Add state for bulk upload ──
 const [bulkUploading, setBulkUploading] = useState(false);
 
@@ -136,54 +138,101 @@ const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const displayed = showAll ? filtered : filtered?.slice(0, PREVIEW_COUNT);
 
-  const handleDelete = (id: string) => console.log("Delete");
+ const handleDeleteConfirm = async () => {
+  if (!deleteTarget?._id) return;
+  setDeleting(true);
+  try {
+    const res = await UserService.deleteUser(deleteTarget._id);
+    if (res?.error || res?.statusCode >= 400) {
+      toast.error(res?.message ?? "Failed to delete student");
+      return;
+    }
+    toast.success(res?.message ?? "Student deleted successfully");
+    setDeleteTarget(null);
+    await refetch();
+  } catch {
+    toast.error("Network error, please try again");
+  } finally {
+    setDeleting(false);
+  }
+};
 
-  const validateForm = (): boolean => {
-    if (!form.name.trim() || !form.lastName.trim()) {
-      toast.error("First name and last name are required"); return false;
-    }
-    if (form.name.trim().length > 30) {
-      toast.error("First name must not exceed 30 characters"); return false;
-    }
-    if (form.lastName.trim().length > 30) {
-      toast.error("Last name must not exceed 30 characters"); return false;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      toast.error("Invalid email format"); return false;
-    }
-    if (!form.password.trim()) {
-      toast.error("Password is required"); return false;
-    }
-    if (!/^\d{13}$/.test(form.cnic)) {
-      toast.error("CNIC must be exactly 13 digits, no dashes"); return false;
-    }
-    if (!/^(92\d{10}|0\d{10})$/.test(form.phone)) {
-      toast.error("Phone: 12 digits starting with 92, or 11 digits starting with 0"); return false;
-    }
-    if (!form.address.trim()) {
-      toast.error("Address is required"); return false;
-    }
-    // ✅ Fixed: was checking form.session twice, city was never validated
-    if (!form.city.trim()) {
-      toast.error("City is required"); return false;
-    }
-    if (!form.department) {
-      toast.error("Department is required"); return false;
-    }
-    if (!form.session.trim()) {
-      toast.error("Session is required"); return false;
-    }
-    if (!form.matricMarks || isNaN(Number(form.matricMarks))) {
-      toast.error("Valid matric marks are required"); return false;
-    }
-    if (Number(form.matricMarks) < 0 || Number(form.matricMarks) > 1100) {
-      toast.error("Matric marks must be between 0 and 1100"); return false;
-    }
-    if (form.whatsappNumber && !/^(92\d{10}|0\d{10})$/.test(form.whatsappNumber)) {
-      toast.error("WhatsApp number format is invalid"); return false;
-    }
-    return true;
+const handleEditStudent = async () => {
+  if (!validateForm(true) || !editingStudent?._id) return;
+  setSaving(true);
+
+  // ✅ Email and password excluded from payload
+  const payload: any = {
+    name:        form.name,
+    lastName:    form.lastName,
+    phone:       form.phone,
+    gender:      form.gender,
+    address:     form.address,
+    cnic:        form.cnic,
+    city:        form.city,
+    class:       form.class,
+    department:  form.department,
+    session:     form.session,
+    matricMarks: Number(form.matricMarks),
+    subjects:    form.subjects.split(",").map((s) => s.trim()).filter(Boolean),
+    ...(form.whatsappNumber && { whatsappNumber: form.whatsappNumber }),
+    doj: form.doj,
+    // ❌ email and password intentionally omitted
   };
+
+  try {
+    const res = await UserService.updateUser(editingStudent._id, payload);
+    if (res?.error || res?.statusCode >= 400) {
+      if (Array.isArray(res?.errors)) res.errors.forEach((e: string) => toast.error(e));
+      else toast.error(res?.message ?? "Something went wrong");
+      return;
+    }
+    toast.success(res?.message ?? "Student updated successfully");
+    setShowModal(false);
+    setEditingStudent(null);
+    setForm({ ...defaultForm, class: selectedClass });
+    await refetch();
+  } catch (err: any) {
+    const data = err?.response?.data;
+    if (Array.isArray(data?.errors)) data.errors.forEach((m: string) => toast.error(m));
+    else if (Array.isArray(data?.message)) data.message.forEach((m: string) => toast.error(m));
+    else toast.error(data?.message ?? "Network error, please try again");
+  } finally {
+    setSaving(false);
+  }
+};
+
+  const validateForm = (isEdit = false): boolean => {
+  if (!form.name.trim() || !form.lastName.trim()) {
+    toast.error("First name and last name are required"); return false;
+  }
+  if (form.name.trim().length > 30) { toast.error("First name must not exceed 30 characters"); return false; }
+  if (form.lastName.trim().length > 30) { toast.error("Last name must not exceed 30 characters"); return false; }
+
+  // ✅ Email validation only on create
+  if (!isEdit && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    toast.error("Invalid email format"); return false;
+  }
+  // ✅ Password required only on create
+  if (!isEdit && !form.password.trim()) {
+    toast.error("Password is required"); return false;
+  }
+
+  if (!/^\d{13}$/.test(form.cnic)) { toast.error("CNIC must be exactly 13 digits, no dashes"); return false; }
+  if (!/^(92\d{10}|0\d{10})$/.test(form.phone)) {
+    toast.error("Phone: 12 digits starting with 92, or 11 digits starting with 0"); return false;
+  }
+  if (!form.address.trim()) { toast.error("Address is required"); return false; }
+  if (!form.city.trim()) { toast.error("City is required"); return false; }
+  if (!form.department) { toast.error("Department is required"); return false; }
+  if (!form.session.trim()) { toast.error("Session is required"); return false; }
+  if (!form.matricMarks || isNaN(Number(form.matricMarks))) { toast.error("Valid matric marks are required"); return false; }
+  if (Number(form.matricMarks) < 0 || Number(form.matricMarks) > 1100) { toast.error("Matric marks must be between 0 and 1100"); return false; }
+  if (form.whatsappNumber && !/^(92\d{10}|0\d{10})$/.test(form.whatsappNumber)) {
+    toast.error("WhatsApp number format is invalid"); return false;
+  }
+  return true;
+};
 
   const handleAddStudent = async () => {
     if (!validateForm()) return;
@@ -333,13 +382,36 @@ const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                       className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
                       <Eye className="h-4 w-4" />
                     </button>
-                    <button className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => handleDelete(s?._id)}
-                      className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                  <button
+  onClick={() => {
+    setEditingStudent(s);
+    setForm({
+      name:           s?.name ?? "",
+      lastName:       s?.lastName ?? "",
+      email:          s?.email ?? "",       // ✅ shown but readonly
+      phone:          s?.phone ?? "",
+      password:       "",                   // ✅ always blank — never prefilled
+      gender:         s?.gender ?? "M",
+      address:        s?.address ?? "",
+      cnic:           s?.cnic ?? "",
+      department:     s?.department?._id ?? "",
+      city:           s?.city ?? "",
+      session:        s?.session ?? "",
+      class:          s?.class ?? "I",
+      subjects:       s?.subjects?.join(", ") ?? "",
+      matricMarks:    s?.matricMarks?.toString() ?? "",
+      whatsappNumber: s?.whatsappNumber ?? "",
+      doj:            s?.doj ?? "",
+    });
+    setShowModal(true);
+  }}
+  className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
+  <Pencil className="h-4 w-4" />
+</button>
+                    <button onClick={() => setDeleteTarget(s)}
+  className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
+  <Trash2 className="h-4 w-4" />
+</button>
                   </div>
                 </td>
               </motion.tr>
@@ -414,10 +486,16 @@ const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
               className="flex flex-col w-full max-w-lg rounded-2xl bg-card shadow-modal max-h-[90vh]">
 
               <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border shrink-0">
-                <h2 className="font-display text-xl font-bold text-foreground">Add Intermediate Student</h2>
-                <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground">
-                  <X className="h-5 w-5" />
-                </button>
+               <h2 className="font-display text-xl font-bold text-foreground">
+  {editingStudent ? "Edit Student" : "Add Intermediate Student"}
+</h2>
+               <button onClick={() => {
+  setShowModal(false);
+  setEditingStudent(null);
+  setForm({ ...defaultForm, class: selectedClass });
+}} className="text-muted-foreground hover:text-foreground">
+  <X className="h-5 w-5" />
+</button>
               </div>
 
               <div className="overflow-y-auto flex-1 px-6 py-4">
@@ -429,11 +507,27 @@ const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                     <Input value={form.lastName} onChange={set("lastName")} placeholder="Khan" />
                   </Field>
                   <Field label="Email">
-                    <Input type="email" value={form.email} onChange={set("email")} placeholder="student@email.com" />
-                  </Field>
-                  <Field label="Password">
-                    <Input type="password" value={form.password} onChange={set("password")} />
-                  </Field>
+  <Input
+    type="email"
+    value={form.email}
+    onChange={set("email")}
+    placeholder="student@email.com"
+    readOnly={!!editingStudent}
+    disabled={!!editingStudent}
+    className={editingStudent ? "bg-secondary/50 cursor-not-allowed text-muted-foreground" : ""}
+  />
+  {editingStudent && (
+    <p className="mt-1 text-xs text-muted-foreground">Email cannot be changed</p>
+  )}
+</Field>
+<Field label={editingStudent ? "Password (leave blank to keep unchanged)" : "Password"}>
+  <Input
+    type="password"
+    value={form.password}
+    onChange={set("password")}
+    placeholder={editingStudent ? "••••••••" : ""}
+  />
+</Field>
                   <Field label="CNIC (13 digits, no dashes)">
                     <Input value={form.cnic} onChange={set("cnic")} placeholder="3520012345678" maxLength={13} />
                   </Field>
@@ -486,15 +580,26 @@ const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
               </div>
 
               <div className="flex justify-end gap-3 px-6 py-4 border-t border-border shrink-0">
-                <Button variant="outline" onClick={() => setShowModal(false)} disabled={saving}>Cancel</Button>
-                <Button onClick={handleAddStudent} disabled={saving}>
-                  {saving ? "Saving..." : "Save Student"}
-                </Button>
-              </div>
+  <Button variant="outline" onClick={() => {
+    setShowModal(false);
+    setEditingStudent(null);
+    setForm({ ...defaultForm, class: selectedClass });
+  }} disabled={saving}>Cancel</Button>
+  <Button onClick={editingStudent ? handleEditStudent : handleAddStudent} disabled={saving}>
+    {saving ? "Saving..." : editingStudent ? "Update Student" : "Save Student"}
+  </Button>
+</div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+      <ConfirmDeleteModal
+  open={!!deleteTarget}
+  studentName={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
+  deleting={deleting}
+  onConfirm={handleDeleteConfirm}
+  onCancel={() => setDeleteTarget(null)}
+/>
     </div>
   );
 };
