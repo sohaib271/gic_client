@@ -21,8 +21,8 @@ class ClassService {
     return res.json();
   }
 
-  static async getClasses(category?: string) {
-    const query = category ? `?category=${category}` : "";
+  static async getClasses(category?: string,department?:string) {
+    const query = category ? `?category=${category}&department=${department}` : "";
     const res = await fetch(`${API}/class/all${query}`, {
       method: "GET",
       headers: this.authHeaders(),

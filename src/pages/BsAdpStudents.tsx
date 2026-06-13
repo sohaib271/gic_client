@@ -53,6 +53,8 @@ const defaultForm = {
   subjects: "",
   matricMarks: "",
   whatsappNumber: "",
+  shift:"",
+  interMarks:"",
   doj: "",
 };
 
@@ -194,8 +196,11 @@ const BsAdpStudents = () => {
     if (!form.matricMarks || isNaN(Number(form.matricMarks))) {
       toast.error("Valid matric marks are required"); return false;
     }
-    if (Number(form.matricMarks) < 0 || Number(form.matricMarks) > 1100) {
-      toast.error("Matric marks must be between 0 and 1100"); return false;
+    if (!form.interMarks || isNaN(Number(form.interMarks))) {
+      toast.error("Valid inter marks are required"); return false;
+    }
+    if (Number(form.matricMarks) < 0 || Number(form.matricMarks) > 1200) {
+      toast.error("Matric marks must be between 0 and 1200"); return false;
     }
     if (form.whatsappNumber && !/^(92\d{10}|0\d{10})$/.test(form.whatsappNumber)) {
       toast.error("WhatsApp number format is invalid"); return false;
@@ -222,6 +227,8 @@ const BsAdpStudents = () => {
       department: form.department,
       session: form.session,
       matricMarks: Number(form.matricMarks),
+      interMarks: Number(form.interMarks),
+      shift:form.shift,
       subjects: form.subjects.split(",").map((s) => s.trim()).filter(Boolean),
       ...(form.whatsappNumber && { whatsappNumber: form.whatsappNumber }),
       doj: form.doj,
@@ -492,6 +499,12 @@ const BsAdpStudents = () => {
                       <option value="F">Female</option>
                     </select>
                   </Field>
+                  <Field label="Shift">
+                    <select className={selectClass} value={form.shift} onChange={set("shift")}>
+                      <option value="Morning">Morning</option>
+                      <option value="Evening">Evening</option>
+                    </select>
+                  </Field>
                   <Field label="Date of Joining">
                     <Input type="date" value={form.doj} onChange={set("doj")} />
                   </Field>
@@ -544,8 +557,11 @@ const BsAdpStudents = () => {
                       ))}
                     </select>
                   </Field>
-                  <Field label="Matric Marks (out of 1100)">
-                    <Input type="number" min={0} max={1100} value={form.matricMarks} onChange={set("matricMarks")} placeholder="850" />
+                  <Field label="Matric Marks (out of 1200)">
+                    <Input type="number" min={0} max={1200} value={form.matricMarks} onChange={set("matricMarks")} placeholder="850" />
+                  </Field>
+                  <Field label="Inter Marks (out of 1100)">
+                    <Input type="number" min={0} max={1200} value={form.interMarks} onChange={set("interMarks")} placeholder="850" />
                   </Field>
                   <Field label="Subjects (comma separated, optional)" col2>
                     <Input value={form.subjects} onChange={set("subjects")} placeholder="OOP, Data Structures, DBMS" />

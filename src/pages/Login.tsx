@@ -32,7 +32,7 @@ const Login = () => {
   setLoading(true);
 
   try {
-    const res = await AuthService.login({ email, password });
+    const res = await AuthService.adminLogin({ email, password });
     if (res?.error) {
       toast.error(res?.message);
       setLoading(false);
@@ -46,12 +46,7 @@ const Login = () => {
 
     setError("");
 
-    // Route based on role
-    if (res?.user?.role === "proff") {
-      navigate("/professor/dashboard");
-    } else {
-      navigate("/admin/dashboard");
-    }
+    if (res?.user) navigate("/admin/dashboard");
 
   } catch (err) {
     setError("Something went wrong");
