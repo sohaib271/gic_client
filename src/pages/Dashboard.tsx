@@ -55,7 +55,7 @@ const Dashboard = () => {
   const [qrDataUrl,      setQrDataUrl]      = useState<string | null>(null);
   const [qrLoading,      setQrLoading]      = useState(false);
   const [qrError,        setQrError]        = useState<string | null>(null);
-  const [qrCountdown,    setQrCountdown]    = useState(300);
+  const [qrCountdown,    setQrCountdown]    = useState(60);
 
   // ── Derived counts
   const students    = useMemo(() => (allUsers || []).filter((u: any) => u.role === "student"), [allUsers]);
@@ -152,7 +152,7 @@ const Dashboard = () => {
     setQrLoading(true);
     setQrError(null);
     setQrDataUrl(null);
-    setQrCountdown(300);
+    setQrCountdown(60);
     try {
       const res = await TeacherAttendanceService.getSharedQR();
       if (!res.success) { setQrError(res?.message ?? "Failed to generate QR"); return; }
@@ -167,7 +167,7 @@ const Dashboard = () => {
   // ── Auto-fetch when panel opens
   useEffect(() => {
     if (activePanel === "facultyQR") fetchFacultyQR();
-    else { setQrDataUrl(null); setQrError(null); setQrCountdown(300); }
+    else { setQrDataUrl(null); setQrError(null); setQrCountdown(60); }
   }, [activePanel]);
 
   // ── Countdown auto-refresh
@@ -175,7 +175,7 @@ const Dashboard = () => {
     if (!qrDataUrl) return;
     const interval = setInterval(() => {
       setQrCountdown((c) => {
-        if (c <= 1) { fetchFacultyQR(); return 300; }
+        if (c <= 1) { fetchFacultyQR(); return 60; }
         return c - 1;
       });
     }, 1000);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Mail, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const Login = () => {
   const navigate = useNavigate();
-  const {isAuthenticated}=useAuth();
+  const { isAuthenticated, user } = useAuth();
   const dispatch=useDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,6 +57,9 @@ const Login = () => {
 };
 
   if (loading) return <LoadingScreen />;
+  if (isAuthenticated && user) {
+    return <Navigate to={user.role === "admin" ? "/admin/dashboard" : "/professor/dashboard"} replace />;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
