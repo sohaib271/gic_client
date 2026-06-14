@@ -13,13 +13,13 @@ const TeacherQRModal = ({ teacher, onClose }: Props) => {
   const [qrDataUrl,  setQrDataUrl]  = useState<string | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState<string | null>(null);
-  const [countdown,  setCountdown]  = useState(300); // 5 min in seconds
+  const [countdown,  setCountdown]  = useState(60);
   const teacherId = teacher?._id ?? teacher?.id;
 
   const fetchQR = async () => {
     setLoading(true);
     setError(null);
-    setCountdown(300);
+    setCountdown(60);
     try {
       if (!teacherId) {
         setError("Professor ID is missing");
@@ -42,7 +42,7 @@ const TeacherQRModal = ({ teacher, onClose }: Props) => {
     if (!qrDataUrl) return;
     const interval = setInterval(() => {
       setCountdown((c) => {
-        if (c <= 1) { fetchQR(); return 300; } // auto-refresh when expired
+        if (c <= 1) { fetchQR(); return 60; } // auto-refresh when expired
         return c - 1;
       });
     }, 1000);
