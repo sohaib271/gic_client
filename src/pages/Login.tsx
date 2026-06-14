@@ -69,7 +69,7 @@ const Login = () => {
   setLoading(true);
 
   try {
-    const res = await AuthService.login({ email, password });
+    const res = await AuthService.adminLogin({ email, password });
     if (res?.error) {
       toast.error(res?.message);
       setLoading(false);
