@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import LoadingScreen from "@/components/LoadingScreen";
 import AuthService from "@/services/authService";
+import UserService from "@/services/userService";
 import { useDispatch } from "react-redux";
-import { setUser } from "@/store/userSlice";
+import { clearUser, setUser } from "@/store/userSlice";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -19,15 +20,43 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(isAuthenticated);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !user) {
+      setCheckingSession(false);
+      return;
+    }
 
-    navigate(user.role === "admin" ? "/admin/dashboard" : "/professor/dashboard", {
-      replace: true,
-    });
-  }, [isAuthenticated, navigate, user]);
+    let cancelled = false;
+
+    const restoreSession = async () => {
+      setCheckingSession(true);
+      try {
+        const currentUser = await UserService.getCurrentUser();
+        if (currentUser?.statusCode >= 400 || currentUser?.error || !currentUser?.role) {
+          throw new Error("Invalid session");
+        }
+
+        if (!cancelled) {
+          navigate(currentUser.role === "admin" ? "/admin/dashboard" : "/professor/dashboard", {
+            replace: true,
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          dispatch(clearUser());
+          setCheckingSession(false);
+        }
+      }
+    };
+
+    restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch, isAuthenticated, navigate, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -64,7 +93,7 @@ const Login = () => {
   }
 };
 
-  if (loading || (isAuthenticated && user)) return <LoadingScreen />;
+  if (loading || checkingSession) return <LoadingScreen />;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">

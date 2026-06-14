@@ -58,9 +58,11 @@ const Dashboard = () => {
   const [qrCountdown,    setQrCountdown]    = useState(60);
 
   // ── Derived counts
-  const students    = useMemo(() => (allUsers || []).filter((u: any) => u.role === "student"), [allUsers]);
-  const professors  = useMemo(() => (allUsers || []).filter((u: any) => u.role === "proff"), [allUsers]);
-  const totalClasses = (classes as any[])?.length ?? 0;
+  const usersList = useMemo(() => Array.isArray(allUsers) ? allUsers : [], [allUsers]);
+  const classesList = useMemo(() => Array.isArray(classes) ? classes : [], [classes]);
+  const students    = useMemo(() => usersList.filter((u: any) => u.role === "student"), [usersList]);
+  const professors  = useMemo(() => usersList.filter((u: any) => u.role === "proff"), [usersList]);
+  const totalClasses = classesList.length;
 
   // ── Struck off query
   const { data: struckOffData } = useQuery({
@@ -94,11 +96,10 @@ const Dashboard = () => {
 
   // ── Classes filtered for attendance scope
   const filteredClasses = useMemo(() => {
-    if (!classes || !Array.isArray(classes)) return [];
-    if (attendanceScope === "all") return classes as any[];
-    if (attendanceScope === "intermediate") return (classes as any[]).filter((c: any) => c.category === "intermediate");
-    return (classes as any[]).filter((c: any) => c.category === "bs" || c.category === "adp");
-  }, [classes, attendanceScope]);
+    if (attendanceScope === "all") return classesList;
+    if (attendanceScope === "intermediate") return classesList.filter((c: any) => c.category === "intermediate");
+    return classesList.filter((c: any) => c.category === "bs" || c.category === "adp");
+  }, [classesList, attendanceScope]);
 
   const stats = [
     { label: "Total Students", value: String(students.length),   icon: Users,        panel: "students"   as DashboardPanel },
