@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Mail, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,14 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    navigate(user.role === "admin" ? "/admin/dashboard" : "/professor/dashboard", {
+      replace: true,
+    });
+  }, [isAuthenticated, navigate, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -56,10 +64,7 @@ const Login = () => {
   }
 };
 
-  if (loading) return <LoadingScreen />;
-  if (isAuthenticated && user) {
-    return <Navigate to={user.role === "admin" ? "/admin/dashboard" : "/professor/dashboard"} replace />;
-  }
+  if (loading || (isAuthenticated && user)) return <LoadingScreen />;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
