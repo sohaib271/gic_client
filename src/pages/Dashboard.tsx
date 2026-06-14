@@ -6,6 +6,8 @@ import {
   Clock, Check, Ban, FileText, Download, Filter, QrCode, RefreshCw,
 } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
+import { useTeacherAttendanceHistory } from "@/hooks/useTeacherAttendance";
+import { UserCircle, History, ArrowLeft } from "lucide-react";
 import { useClasses } from "@/hooks/useClasses";
 import { useQuery } from "@tanstack/react-query";
 import UserService from "@/services/userService";
@@ -29,7 +31,7 @@ const fetchClassAttendance = async (classId: string, date: string) => {
   return res.json();
 };
 
-type DashboardPanel = "students" | "attendance" | "facultyQR" | null;
+type DashboardPanel = "students" | "attendance" | "facultyQR" | "faculty" | null;
 
 const Dashboard = () => {
   const { data: allUsers } = useUsers("");
@@ -57,11 +59,18 @@ const Dashboard = () => {
   const [qrError,        setQrError]        = useState<string | null>(null);
   const [qrCountdown,    setQrCountdown]    = useState(60);
 
+  // ── Faculty panel state
+const [facultySearch,       setFacultySearch]       = useState("");
+const [selectedTeacher,     setSelectedTeacher]     = useState<any | null>(null);
+const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
+
   // ── Derived counts
   const usersList = useMemo(() => Array.isArray(allUsers) ? allUsers : [], [allUsers]);
   const classesList = useMemo(() => Array.isArray(classes) ? classes : [], [classes]);
   const students    = useMemo(() => usersList.filter((u: any) => u.role === "student"), [usersList]);
   const professors  = useMemo(() => usersList.filter((u: any) => u.role === "proff"), [usersList]);
+  const { records: teacherAttendance, isLoading: attendanceLoading } =
+  useTeacherAttendanceHistory(showTeacherHistory ? selectedTeacher?._id : null);
   const totalClasses = classesList.length;
 
   // ── Struck off query
@@ -105,7 +114,7 @@ const Dashboard = () => {
     { label: "Total Students", value: String(students.length),   icon: Users,        panel: "students"   as DashboardPanel },
     { label: "Total Classes",  value: String(totalClasses),       icon: BookOpen,     panel: null },
     { label: "Attendance",     value: "View Report",              icon: CalendarCheck, panel: "attendance" as DashboardPanel },
-    { label: "Faculty",        value: String(professors.length),  icon: GraduationCap, panel: null },
+    { label: "Faculty", value: String(professors.length), icon: GraduationCap, panel: "faculty" as DashboardPanel },
     { label: "Faculty QR",     value: "View QR Code",             icon: QrCode,        panel: "facultyQR"  as DashboardPanel },
   ];
 
@@ -147,6 +156,17 @@ const Dashboard = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const filteredProfessors = useMemo(() => {
+  if (!facultySearch.trim()) return professors;
+  const q = facultySearch.toLowerCase();
+  return professors.filter((p: any) =>
+    p?.name?.toLowerCase().includes(q) ||
+    p?.lastName?.toLowerCase().includes(q) ||
+    p?.specialId?.toLowerCase().includes(q) ||
+    p?.department?.code?.toLowerCase().includes(q)
+  );
+}, [professors, facultySearch]);
 
   // ── Faculty QR: fetch shared QR (no teacherId needed)
   const fetchFacultyQR = async () => {
@@ -196,7 +216,21 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            onClick={() => stat.panel && setActivePanel(activePanel === stat.panel ? null : stat.panel)}
+            onClick={() => {
+  if (stat.panel) {
+    if (activePanel === stat.panel) {
+      setActivePanel(null);
+    } else {
+      setActivePanel(stat.panel);
+      // ✅ Reset faculty state when switching away
+      if (stat.panel !== "faculty") {
+        setSelectedTeacher(null);
+        setShowTeacherHistory(false);
+        setFacultySearch("");
+      }
+    }
+  }
+}}
             className={`group rounded-xl border border-border bg-card p-5 shadow-card transition-all hover:shadow-elevated ${
               stat.panel ? "cursor-pointer hover:-translate-y-0.5" : ""
             } ${activePanel === stat.panel && stat.panel ? "ring-2 ring-primary/40" : ""}`}
@@ -598,6 +632,224 @@ const Dashboard = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* ══════════ FACULTY PANEL ══════════ */}
+<AnimatePresence>
+  {activePanel === "faculty" && (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          {showTeacherHistory && selectedTeacher ? (
+            <button
+              onClick={() => { setShowTeacherHistory(false); }}
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to Faculty
+            </button>
+          ) : (
+            <h2 className="font-display text-lg font-bold text-foreground">Faculty</h2>
+          )}
+        </div>
+        <button
+          onClick={() => {
+            setActivePanel(null);
+            setSelectedTeacher(null);
+            setShowTeacherHistory(false);
+            setFacultySearch("");
+          }}
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* ── Teacher Attendance History View ── */}
+      {showTeacherHistory && selectedTeacher && (
+        <div>
+          {/* Teacher info bar */}
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-secondary/20">
+            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <UserCircle className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {selectedTeacher.name} {selectedTeacher.lastName}
+                <span className="ml-2 text-xs font-normal text-muted-foreground">{selectedTeacher.specialId}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {selectedTeacher.department?.code ?? "—"} · Attendance History
+              </p>
+            </div>
+          </div>
+
+          {/* Loading */}
+          {attendanceLoading && (
+            <div className="space-y-2 p-5">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-12 rounded-lg border border-border bg-card animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          {/* Empty */}
+          {!attendanceLoading && teacherAttendance.length === 0 && (
+            <div className="flex flex-col items-center justify-center p-12 text-center">
+              <History className="h-10 w-10 text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">No attendance records found.</p>
+            </div>
+          )}
+
+          {/* Records */}
+          {!attendanceLoading && teacherAttendance.length > 0 && (() => {
+            // ✅ Group by date
+            const grouped: Record<string, typeof teacherAttendance> = {};
+            teacherAttendance.forEach((r) => {
+              const dateKey = new Date(r.currentDate).toISOString().split("T")[0];
+              grouped[dateKey] = grouped[dateKey] ?? [];
+              grouped[dateKey].push(r);
+            });
+
+            return (
+              <div className="divide-y divide-border">
+                {Object.entries(grouped)
+                  .sort(([a], [b]) => b.localeCompare(a))
+                  .map(([date, dayRecords]) => {
+                    const checkIn  = dayRecords.find((r) => r.type === "check-in");
+                    const checkOut = dayRecords.find((r) => r.type === "check-out");
+                    return (
+                      <div key={date} className="px-5 py-3 hover:bg-secondary/20 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-foreground">
+                            {new Date(date).toLocaleDateString("en-GB", {
+                              weekday: "short", day: "numeric", month: "short", year: "numeric"
+                            })}
+                          </p>
+                          <div className="flex items-center gap-3">
+                            {checkIn ? (
+                              <span className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2.5 py-0.5 rounded-full border border-green-200">
+                                <Check className="h-3 w-3" />
+                                In {new Date(checkIn.currentDate).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/50 bg-secondary px-2.5 py-0.5 rounded-full">
+                                No check-in
+                              </span>
+                            )}
+                            {checkOut ? (
+                              <span className="flex items-center gap-1 text-xs text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200">
+                                <Check className="h-3 w-3" />
+                                Out {new Date(checkOut.currentDate).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/50 bg-secondary px-2.5 py-0.5 rounded-full">
+                                No check-out
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ── Faculty List View ── */}
+      {!showTeacherHistory && (
+        <>
+          {/* Search */}
+          <div className="px-5 py-3 border-b border-border bg-secondary/20">
+            <div className="relative max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={facultySearch}
+                onChange={(e) => setFacultySearch(e.target.value)}
+                placeholder="Search by name, ID or department..."
+                className="rounded-lg border border-input bg-background pl-8 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full"
+              />
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-secondary/40">
+                  {["#", "ID", "Name", "Department", "HOD", "Qualification", "Actions"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProfessors.map((p: any, i: number) => (
+                  <motion.tr
+                    key={p._id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.02 }}
+                    className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{p.specialId ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-xs font-bold text-primary">
+                          {p.name?.[0]}{p.lastName?.[0]}
+                        </div>
+                        <span className="text-foreground">{p.name} {p.lastName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{p.department?.code ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {p.isHod ? (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">HOD</span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{p.qualification ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => {
+                          setSelectedTeacher(p);
+                          setShowTeacherHistory(true);
+                        }}
+                        className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                      >
+                        <History className="h-3.5 w-3.5" /> Attendance
+                      </button>
+                    </td>
+                  </motion.tr>
+                ))}
+                {filteredProfessors.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
+                      No faculty found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer count */}
+          <div className="px-5 py-3 border-t border-border bg-secondary/10">
+            <p className="text-xs text-muted-foreground">
+              Showing {filteredProfessors.length} of {professors.length} professors
+            </p>
+          </div>
+        </>
+      )}
+    </motion.div>
+  )}
+</AnimatePresence>
 
       {/* ══════════ FACULTY QR PANEL ══════════ */}
       <AnimatePresence>
