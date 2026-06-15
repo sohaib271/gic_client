@@ -12,8 +12,17 @@ class ClassService {
       Authorization: `Bearer ${this.getToken()}`,
     };
   }
+
+  private static departmentQuery() {
+    const user = store.getState().user.user as any;
+    const departmentId = user?.department?._id ?? user?.department;
+    return user?.isHod && departmentId
+      ? `?department=${encodeURIComponent(departmentId)}`
+      : "";
+  }
+
   static async createClass(data: any) {
-    const res = await fetch(`${API}/class/create`, {
+    const res = await fetch(`${API}/class/create${this.departmentQuery()}`, {
       method: "POST",
       headers: this.authHeaders(),
       body: JSON.stringify(data),
@@ -50,7 +59,7 @@ class ClassService {
   }
 
   static async getClassStudents(classId: string) {
-    const res = await fetch(`${API}/class/get-class-students/${classId}`, {
+    const res = await fetch(`${API}/class/get-class-students/${classId}${this.departmentQuery()}`, {
       method: "GET",
       headers: this.authHeaders(),
     });
@@ -58,7 +67,7 @@ class ClassService {
   }
 
   static async getAssignedTeachers(classId: string) {
-    const res = await fetch(`${API}/class/get-assigned-teachers/${classId}`, {
+    const res = await fetch(`${API}/class/get-assigned-teachers/${classId}${this.departmentQuery()}`, {
       method: "GET",
       headers: this.authHeaders(),
     });
@@ -66,7 +75,7 @@ class ClassService {
   }
 
   static async updateClass(classId: string, data: { class?: string; session?: string }) {
-    const res = await fetch(`${API}/class/update-class/${classId}`, {
+    const res = await fetch(`${API}/class/update-class/${classId}${this.departmentQuery()}`, {
       method: "PATCH",
       headers: this.authHeaders(),
       body: JSON.stringify(data),
@@ -82,7 +91,7 @@ class ClassService {
       schedule: { day: string; startTime: string; endTime: string }[];
     }
   ) {
-    const res = await fetch(`${API}/class/assign-teacher-to-class/${classId}`, {
+    const res = await fetch(`${API}/class/assign-teacher-to-class/${classId}${this.departmentQuery()}`, {
       method: "POST",
       headers: this.authHeaders(),
       body: JSON.stringify(payload),
@@ -92,7 +101,7 @@ class ClassService {
 
   static async removeTeacherFromClass(classId: string, teacherId: string) {
     const res = await fetch(
-      `${API}/class/remove-teacher-from-class/${classId}/${teacherId}`,
+      `${API}/class/remove-teacher-from-class/${classId}/${teacherId}${this.departmentQuery()}`,
       {
         method: "PATCH",
         headers: this.authHeaders(),
@@ -106,7 +115,7 @@ class ClassService {
     teacherId: string,
     data: { subject?: string; schedule?: { day: string; startTime: string; endTime: string }[] }
   ) {
-    const res = await fetch(`${API}/class/${classId}/assignes/${teacherId}`, {
+    const res = await fetch(`${API}/class/${classId}/assignes/${teacherId}${this.departmentQuery()}`, {
       method: "PATCH",
       headers: this.authHeaders(),
       body: JSON.stringify(data),
@@ -119,7 +128,7 @@ class ClassService {
     schedule: { day: string; startTime: string; endTime: string }[]
   ) {
     const res = await fetch(
-      `${API}/class/${classId}/assignes/${teacherId}/schedule`,
+      `${API}/class/${classId}/assignes/${teacherId}/schedule${this.departmentQuery()}`,
       {
         method: "PATCH",
         headers: this.authHeaders(),
@@ -135,7 +144,7 @@ class ClassService {
     schedule: { day: string; startTime: string; endTime: string }[]
   ) {
     const res = await fetch(
-      `${API}/class/${classId}/assignes/${teacherId}/schedule`,
+      `${API}/class/${classId}/assignes/${teacherId}/schedule${this.departmentQuery()}`,
       {
         method: "POST",
         headers: this.authHeaders(),
@@ -147,7 +156,7 @@ class ClassService {
 
   static async addStudentToClass(classId: string, studentId: string) {
     const res = await fetch(
-      `${API}/class/add-student-in-class/${classId}/${studentId}`,
+      `${API}/class/add-student-in-class/${classId}/${studentId}${this.departmentQuery()}`,
       {
         method: "POST",
         headers: this.authHeaders(),
@@ -158,7 +167,7 @@ class ClassService {
 
   static async removeStudentFromClass(classId: string, studentId: string) {
     const res = await fetch(
-      `${API}/class/remove-student-from-class/${classId}/${studentId}`,
+      `${API}/class/remove-student-from-class/${classId}/${studentId}${this.departmentQuery()}`,
       {
         method: "PATCH",
         headers: this.authHeaders(),

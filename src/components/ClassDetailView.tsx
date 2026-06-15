@@ -15,16 +15,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { WEEKDAYS as DAYS } from "@/lib/academic";
 import ClassService from "@/services/classService";
-
-const DAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
 
 type Tab = "teachers" | "students";
 
@@ -65,7 +57,7 @@ interface Props {
   professors: any[];
   students: any[];
   onBack: () => void;
-  onViewSchedule: () => void;
+  onViewSchedule?: () => void;
   onRemoveTeacher: (teacherId: string) => void;
   onRemoveStudent: (studentId: string) => void;
   onAddTeachers: (teachers: AssignedTeacher[]) => void;
@@ -609,12 +601,14 @@ export default function ClassDetailView({
             {classData?.session} · {classData?.departmentId?.name ?? ""}
           </motion.p>
         </div>
-        <button
-          onClick={onViewSchedule}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
-        >
-          {/* <CalendarDays className="h-4 w-4 text-primary" /> View Schedule */}
-        </button>
+        {onViewSchedule && (
+          <button
+            onClick={onViewSchedule}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+          >
+            <CalendarDays className="h-4 w-4 text-primary" /> Mark Attendance
+          </button>
+        )}
       </div>
 
       {/* ── Tabs ───────────────────────────────────────────────────────── */}

@@ -1,6 +1,7 @@
 // FacultyDetailView.tsx — full updated component
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { WEEKDAYS as DAYS } from "@/lib/academic";
 import { ArrowLeft, Calendar, Clock, BookOpen, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTeacherSchedule } from "@/hooks/useTeacherSchedule";
@@ -12,7 +13,6 @@ interface FacultyDetailViewProps {
   autoShowSchedule?: boolean;
 }
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 // ✅ Convert "09:00" → "09:00 AM" / "13:00" → "01:00 PM" for display
 const formatTime = (t: string) => {

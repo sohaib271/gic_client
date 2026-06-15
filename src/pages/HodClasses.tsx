@@ -7,13 +7,9 @@ import { useClasses } from "@/hooks/useClasses";
 import { useUsers } from "@/hooks/useUsers";
 import { useDepartments } from "@/hooks/useDepartments";
 import { useClassForm } from "@/hooks/useClassForm";
-
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const ALL_SEMESTERS = [
-  { label: "1st", value: "I" }, { label: "2nd", value: "II" }, { label: "3rd", value: "III" },
-  { label: "4th", value: "IV" }, { label: "5th", value: "V" }, { label: "6th", value: "VI" },
-  { label: "7th", value: "VII" }, { label: "8th", value: "VIII" },
-];
+import { SEMESTERS as ALL_SEMESTERS, WEEKDAYS as DAYS } from "@/lib/academic";
+import ManagedClassDetail from "@/components/ManagedClassDetail";
+import AttendanceMarker from "@/components/AttendanceMarker";
 
 const HodClasses = () => {
   const user = useSelector((state: any) => state?.user.user);
@@ -47,10 +43,9 @@ const HodClasses = () => {
       ),
     [classes, deptId],
   );
-  console.log(deptClasses)
-
   const [showForm, setShowForm] = useState(false);
   const [selectedClass, setSelectedClass] = useState<any>(null);
+  const [markingAttendance, setMarkingAttendance] = useState(false);
 
   const getDeptCode = (id: string) => {
     const dept = (departments || []).find((d: any) => d._id === id) as any;
@@ -81,8 +76,32 @@ const HodClasses = () => {
     return <div className="p-6 text-sm text-muted-foreground">Access denied.</div>;
   }
 
-  // Class detail (read-only)
+  if (selectedClass && markingAttendance) {
+    return (
+      <AttendanceMarker
+        classData={selectedClass}
+        teacherId={user?._id}
+        onBack={() => setMarkingAttendance(false)}
+      />
+    );
+  }
+
   if (selectedClass) {
+    return (
+      <ManagedClassDetail
+        classData={selectedClass}
+        professors={profUsers}
+        students={deptStudents}
+        onBack={() => setSelectedClass(null)}
+        onChange={setSelectedClass}
+        onRefetch={() => void refetch()}
+        onMarkAttendance={() => setMarkingAttendance(true)}
+      />
+    );
+  }
+
+  // Class detail (read-only)
+  if (selectedClass && !user?.isHod) {
     const assignedTeachers = selectedClass.assignes || [];
     const classStudents = selectedClass.classStudents || [];
     return (

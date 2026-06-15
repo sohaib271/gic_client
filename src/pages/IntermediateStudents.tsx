@@ -1,31 +1,23 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Trash2, X, Eye, ArrowRight, Upload } from "lucide-react";
 import ConfirmDeleteModal from "@/components/ConfirmDelete"
 import TableSkeleton from "@/components/TableSkeleton";
+import {
+  StudentFormField as Field,
+} from "@/components/students/StudentFormPrimitives";
+import { selectInputClass as selectClass } from "@/lib/formStyles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { getCommonStudentValidationError } from "@/lib/studentValidation";
 import { useDepartments } from "@/hooks/useDepartments";
 import UserService from "@/services/userService";
 import { useUsers } from "@/hooks/useUsers";
 import { useSelector } from "react-redux";
 
 const PREVIEW_COUNT = 5;
-
-const selectClass = cn(
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-);
-
-const Field = ({ label, children, col2 = false }: { label: string; children: React.ReactNode; col2?: boolean }) => (
-  <div className={col2 ? "sm:col-span-2" : ""}>
-    <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
-    {children}
-  </div>
-);
 
 const defaultForm = {
   name: "",
@@ -203,34 +195,11 @@ const handleEditStudent = async () => {
 };
 
   const validateForm = (isEdit = false): boolean => {
-  if (!form.name.trim() || !form.lastName.trim()) {
-    toast.error("First name and last name are required"); return false;
-  }
-  if (form.name.trim().length > 30) { toast.error("First name must not exceed 30 characters"); return false; }
-  if (form.lastName.trim().length > 30) { toast.error("Last name must not exceed 30 characters"); return false; }
+  const error = getCommonStudentValidationError(form, isEdit, 1100);
+  if (error) { toast.error(error); return false; }
 
   // ✅ Email validation only on create
-  if (!isEdit && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    toast.error("Invalid email format"); return false;
-  }
   // ✅ Password required only on create
-  if (!isEdit && !form.password.trim()) {
-    toast.error("Password is required"); return false;
-  }
-
-  if (!/^\d{13}$/.test(form.cnic)) { toast.error("CNIC must be exactly 13 digits, no dashes"); return false; }
-  if (!/^(92\d{10}|0\d{10})$/.test(form.phone)) {
-    toast.error("Phone: 12 digits starting with 92, or 11 digits starting with 0"); return false;
-  }
-  if (!form.address.trim()) { toast.error("Address is required"); return false; }
-  if (!form.city.trim()) { toast.error("City is required"); return false; }
-  if (!form.department) { toast.error("Department is required"); return false; }
-  if (!form.session.trim()) { toast.error("Session is required"); return false; }
-  if (!form.matricMarks || isNaN(Number(form.matricMarks))) { toast.error("Valid matric marks are required"); return false; }
-  if (Number(form.matricMarks) < 0 || Number(form.matricMarks) > 1100) { toast.error("Matric marks must be between 0 and 1100"); return false; }
-  if (form.whatsappNumber && !/^(92\d{10}|0\d{10})$/.test(form.whatsappNumber)) {
-    toast.error("WhatsApp number format is invalid"); return false;
-  }
   return true;
 };
 

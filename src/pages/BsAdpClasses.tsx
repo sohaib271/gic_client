@@ -10,6 +10,7 @@ import { useUsers } from "@/hooks/useUsers";
 import ClassService from "@/services/classService";
 import { useClasses } from "@/hooks/useClasses";
 import ClassDetailView from "@/components/ClassDetailView";
+import { SEMESTERS as ALL_SEMESTERS, WEEKDAYS as DAYS } from "@/lib/academic";
 
 const classDates = [
   { date: "2025-03-10", day: "Monday"    },
@@ -41,19 +42,6 @@ const lecturesByDate: Record<string, { id: string; subject: string; time: string
     { id: "l10", subject: "Mechanics",         time: "11:00 AM", duration: "40 mins", teacher: "Rajesh Sharma", presentPercent: 87 },
   ],
 };
-
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-const ALL_SEMESTERS = [
-  { label: "1st", value: "I"    },
-  { label: "2nd", value: "II"   },
-  { label: "3rd", value: "III"  },
-  { label: "4th", value: "IV"   },
-  { label: "5th", value: "V"    },
-  { label: "6th", value: "VI"   },
-  { label: "7th", value: "VII"  },
-  { label: "8th", value: "VIII" },
-];
 
 type View = "list" | "classDetail" | "dates" | "lectures" | "lectureDetail";
 

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Pencil, Trash2, ArrowRight } from "lucide-react";
-import { scores as mockScores } from "@/data/mockData";
-import type { Score } from "@/data/mockData";
+import { subjects as mockScores } from "@/data/mockData";
+import type { Subject } from "@/data/mockData";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ const IntermediateScore = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showAll, setShowAll] = useState(false);
-  const [scoresList] = useState<Score[]>(mockScores);
+  const [scoresList] = useState<Subject[]>(mockScores);
 
   useEffect(() => { const t = setTimeout(() => setLoading(false), 600); return () => clearTimeout(t); }, []);
 

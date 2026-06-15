@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, Plus, X, ChevronRight } from "lucide-react";
-import { professors as mockProfessors } from "@/data/mockData";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,10 +35,9 @@ const Field = ({
 
 const Faculty = () => {
   const { data } = useDepartments();
-  const { data: users, isLoading } = useUsers("proff");
+  const { data: users = [], isLoading, refetch } = useUsers("proff");
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<FacultyType>("proff");
-  const [professors, setProfessors] = useState(mockProfessors);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [detailFaculty, setDetailFaculty] = useState<any | null>(null);
@@ -167,7 +165,7 @@ const Faculty = () => {
         return;
       }
       toast.success(res?.message ?? "Added successfully");
-      setProfessors((p) => [...p, res?.user ?? newMember]);
+      await refetch();
       setShowModal(false);
     } catch (err: any) {
       const message = err?.response?.data?.message;
@@ -284,8 +282,8 @@ const Faculty = () => {
     {
       title: "Professors",
       type: "proff" as FacultyType,
-      data: professors,
-      count: professors.length,
+      data: users,
+      count: users.length,
     },
   ];
 
@@ -305,7 +303,7 @@ const Faculty = () => {
           </p>
         </div>
         <span className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs sm:text-sm font-semibold text-primary w-fit">
-          Total Faculty: {professors.length}
+          Total Faculty: {users.length}
         </span>
       </motion.div>
 

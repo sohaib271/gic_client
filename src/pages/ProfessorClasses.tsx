@@ -1,17 +1,34 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { School, ChevronLeft, Users, BookOpen, Clock, UserCircle, CalendarDays } from "lucide-react";
 import { useSelector } from "react-redux";
 import AttendanceMarker from "@/components/AttendanceMarker";
 import { useMyClasses } from "@/hooks/useMyClasses";
+import { useUsers } from "@/hooks/useUsers";
+import ManagedClassDetail from "@/components/ManagedClassDetail";
 
 type View = "list" | "classDetail" | "attendance";
 
 const ProfessorClasses = () => {
   const user = useSelector((state: any) => state?.user.user);
-  const {data:classes,isLoading:loading}=useMyClasses();
+  const { data: classes = [], isLoading: loading, refetch } = useMyClasses();
+  const { data: users = [] } = useUsers("");
   const [view, setView] = useState<View>("list");
   const [selectedClass, setSelectedClass] = useState<any>(null);
+  const departmentId = user?.department?._id ?? user?.department;
+
+  const { departmentTeachers, departmentStudents } = useMemo(() => {
+    const sameDepartment = (member: any) =>
+      (member?.department?._id ?? member?.department) === departmentId;
+    return {
+      departmentTeachers: users.filter(
+        (member: any) => member.role === "proff" && sameDepartment(member),
+      ),
+      departmentStudents: users.filter(
+        (member: any) => member.role === "student" && sameDepartment(member),
+      ),
+    };
+  }, [departmentId, users]);
 
   const getMyAssignment = (cls: any) => {
     return (cls.assignes || []).find((a: any) => {
@@ -27,6 +44,20 @@ const ProfessorClasses = () => {
         classData={selectedClass}
         teacherId={user?._id}
         onBack={() => setView("classDetail")}
+      />
+    );
+  }
+
+  if (view === "classDetail" && selectedClass && user?.isHod) {
+    return (
+      <ManagedClassDetail
+        classData={selectedClass}
+        professors={departmentTeachers}
+        students={departmentStudents}
+        onBack={() => setView("list")}
+        onChange={setSelectedClass}
+        onRefetch={() => void refetch()}
+        onMarkAttendance={() => setView("attendance")}
       />
     );
   }

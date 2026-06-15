@@ -18,6 +18,7 @@ import { useUsers } from "@/hooks/useUsers";
 import ClassService from "@/services/classService";
 import { useClasses } from "@/hooks/useClasses";
 import ClassDetailView from "@/components/ClassDetailView";
+import { WEEKDAYS as DAYS } from "@/lib/academic";
 
 const classDates = [
   { date: "2025-03-10", day: "Monday" },
@@ -129,15 +130,6 @@ const lecturesByDate: Record<
     },
   ],
 };
-
-const DAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
 
 type View = "list" | "classDetail" | "dates" | "lectures" | "lectureDetail";
 

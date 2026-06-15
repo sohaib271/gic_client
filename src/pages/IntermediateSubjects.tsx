@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Trash2, X, ArrowRight, Plus } from "lucide-react";
-import { subjects as mockSubjects, interClasses } from "@/data/mockData";
+import { subjects as mockSubjects } from "@/data/mockData";
 import type { Subject } from "@/data/mockData";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";

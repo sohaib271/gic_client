@@ -2,8 +2,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Check, X, UserCircle, Search } from "lucide-react";
 import { AssignedTeacher } from "@/hooks/useClassForm";
+import { WEEKDAYS as DAYS } from "@/lib/academic";
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 interface ClassFormModalProps {
   show: boolean;
