@@ -12,38 +12,10 @@ import { useClasses } from "@/hooks/useClasses";
 import ClassDetailView from "@/components/ClassDetailView";
 import { SEMESTERS as ALL_SEMESTERS, WEEKDAYS as DAYS } from "@/lib/academic";
 
-const classDates = [
-  { date: "2025-03-10", day: "Monday"    },
-  { date: "2025-03-11", day: "Tuesday"   },
-  { date: "2025-03-12", day: "Wednesday" },
-  { date: "2025-03-13", day: "Thursday"  },
-  { date: "2025-03-14", day: "Friday"    },
-];
-
-const lecturesByDate: Record<string, { id: string; subject: string; time: string; duration: string; teacher: string; presentPercent: number }[]> = {
-  "2025-03-10": [
-    { id: "l1",  subject: "Data Structures",  time: "09:00 AM", duration: "40 mins", teacher: "Rajesh Sharma", presentPercent: 85 },
-    { id: "l2",  subject: "Calculus",          time: "10:00 AM", duration: "40 mins", teacher: "Amit Patel",    presentPercent: 92 },
-    { id: "l3",  subject: "Technical Writing", time: "11:00 AM", duration: "40 mins", teacher: "Priya Nair",    presentPercent: 78 },
-  ],
-  "2025-03-11": [
-    { id: "l4",  subject: "Organic Chemistry", time: "09:00 AM", duration: "40 mins", teacher: "Vikram Singh",  presentPercent: 88 },
-    { id: "l5",  subject: "Linear Algebra",    time: "10:00 AM", duration: "40 mins", teacher: "Sunita Verma",  presentPercent: 95 },
-  ],
-  "2025-03-12": [
-    { id: "l6",  subject: "Thermodynamics",    time: "09:00 AM", duration: "40 mins", teacher: "Rajesh Sharma", presentPercent: 80 },
-    { id: "l7",  subject: "Statistics",        time: "10:30 AM", duration: "40 mins", teacher: "Amit Patel",    presentPercent: 90 },
-  ],
-  "2025-03-13": [
-    { id: "l8",  subject: "Literature",        time: "09:00 AM", duration: "40 mins", teacher: "Priya Nair",    presentPercent: 82 },
-  ],
-  "2025-03-14": [
-    { id: "l9",  subject: "Biochemistry",      time: "09:00 AM", duration: "40 mins", teacher: "Vikram Singh",  presentPercent: 91 },
-    { id: "l10", subject: "Mechanics",         time: "11:00 AM", duration: "40 mins", teacher: "Rajesh Sharma", presentPercent: 87 },
-  ],
-};
-
 type View = "list" | "classDetail" | "dates" | "lectures" | "lectureDetail";
+
+const classDates: { date: string; day: string }[] = [];
+const lecturesByDate: Record<string, any[]> = {};
 
 interface AssignedTeacher {
   teacherId: string;
@@ -379,10 +351,6 @@ const BsAdpClasses = () => {
         professors={professors}
         students={bsAdpStudents}
         onBack={() => setView("list")}
-        onViewSchedule={() => {
-          setSelectedSection(selectedClassData.className);
-          setView("dates");
-        }}
         onRemoveTeacher={(teacherId) => {
           setSelectedClassData((prev: any) => ({
             ...prev,
