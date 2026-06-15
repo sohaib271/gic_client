@@ -18,10 +18,11 @@ const ALL_SEMESTERS = [
 const HodClasses = () => {
   const user = useSelector((state: any) => state?.user.user);
   const { data: departments } = useDepartments();
-  const { data: classes, refetch, isLoading } = useClasses("");
+ 
   const { data: users } = useUsers("");
 
   const deptId: string = user?.department?._id ?? user?.department ?? "";
+   const { data: classes, refetch, isLoading } = useClasses("",deptId);
   const deptCategory: string =
     user?.department?.category ??
     (departments || []).find((d: any) => d?._id === deptId)?.category ??
@@ -46,6 +47,7 @@ const HodClasses = () => {
       ),
     [classes, deptId],
   );
+  console.log(deptClasses)
 
   const [showForm, setShowForm] = useState(false);
   const [selectedClass, setSelectedClass] = useState<any>(null);

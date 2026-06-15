@@ -22,7 +22,10 @@ class ClassService {
   }
 
   static async getClasses(category?: string,department?:string) {
-    const query = category ? `?category=${category}&department=${department}` : "";
+    let query = "";
+    if(category) query=`?category=${category}`;
+    if(department) query=`?department=${department}`;
+    if(category && department) query=`?category=${category}&department=${department}`;
     const res = await fetch(`${API}/class/all${query}`, {
       method: "GET",
       headers: this.authHeaders(),
