@@ -488,6 +488,7 @@ const [deleting,     setDeleting]     = useState(false);
                           lastName: s?.lastName ?? "",
                           email: s?.email ?? "",
                           phone: s?.phone ?? "",
+                          password: "",
                           gender: s?.gender ?? "M",
                           address: s?.address ?? "",
                           cnic: s?.cnic ?? "",
