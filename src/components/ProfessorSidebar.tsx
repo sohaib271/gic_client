@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutDashboard, School, LogOut, X, GraduationCap } from "lucide-react";
+import { LayoutDashboard, School, LogOut, X, GraduationCap, Users, Building2, Briefcase } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AuthService from "@/services/authService";
@@ -7,9 +7,15 @@ import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { clearUser } from "@/store/userSlice";
 
-const navItems = [
+const baseNavItems = [
   { to: "/professor/dashboard", icon: LayoutDashboard, label: "My Timetable" },
   { to: "/professor/classes", icon: School, label: "My Classes" },
+];
+
+const hodNavItems = [
+  { to: "/professor/department/classes", icon: Building2, label: "Department Classes" },
+  { to: "/professor/department/faculty", icon: Briefcase, label: "Department Faculty" },
+  { to: "/professor/department/students", icon: Users, label: "Department Students" },
 ];
 
 interface Props {
@@ -21,6 +27,7 @@ const ProfessorSidebar = ({ isOpen, onToggle }: Props) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state?.user.user);
+  const navItems = user?.isHod ? [...baseNavItems, ...hodNavItems] : baseNavItems;
 
   async function signOut() {
     const res = await AuthService.logout(user?._id);

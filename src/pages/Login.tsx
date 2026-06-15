@@ -39,6 +39,11 @@ const Login = () => {
           throw new Error("Invalid session");
         }
 
+        // Block plain professors (non-HOD) from restoring a session
+        if (currentUser.role === "proff" && !currentUser.isHod) {
+          throw new Error("Professors cannot log in");
+        }
+
         if (!cancelled) {
           navigate(currentUser.role === "admin" ? "/admin/dashboard" : "/professor/dashboard", {
             replace: true,
@@ -75,17 +80,21 @@ const Login = () => {
       setLoading(false);
       return;
     }
-    // ❌ REMOVE THIS (important)
-    dispatch(setUser({
-  user: res?.user,
-  token: res?.access_token
-}));;
 
+    // Block plain professors (only HODs and admins can log in)
+    if (res?.user?.role === "proff" && !res?.user?.isHod) {
+      toast.error("Access denied — only HOD professors can log in");
+      setLoading(false);
+      return;
+    }
+
+    dispatch(setUser({ user: res?.user, token: res?.access_token }));
     setError("");
 
-    if (res?.user.role==='admin') navigate("/admin/dashboard");
-    else if(res?.user.isHod===true){
-      navigate('/professor/dashboard');
+    if (res?.user.role === "admin") navigate("/admin/dashboard");
+    else if (res?.user.isHod === true) navigate("/professor/dashboard");
+    else {
+      toast.error("Access denied");
     }
 
   } catch (err) {
