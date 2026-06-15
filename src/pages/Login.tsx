@@ -69,7 +69,7 @@ const Login = () => {
   setLoading(true);
 
   try {
-    const res = await AuthService.adminLogin({ email, password });
+    const res = await AuthService.login({ email, password });
     if (res?.error) {
       toast.error(res?.message);
       setLoading(false);
@@ -84,7 +84,9 @@ const Login = () => {
     setError("");
 
     if (res?.user.role==='admin') navigate("/admin/dashboard");
-    else navigate('/professor/dashboard')
+    else if(res?.user.isHod===true){
+      navigate('/professor/dashboard');
+    }
 
   } catch (err) {
     setError("Something went wrong");
