@@ -20,118 +20,10 @@ import { useClasses } from "@/hooks/useClasses";
 import ClassDetailView from "@/components/ClassDetailView";
 import { WEEKDAYS as DAYS } from "@/lib/academic";
 
-const classDates = [
-  { date: "2025-03-10", day: "Monday" },
-  { date: "2025-03-11", day: "Tuesday" },
-  { date: "2025-03-12", day: "Wednesday" },
-  { date: "2025-03-13", day: "Thursday" },
-  { date: "2025-03-14", day: "Friday" },
-];
-
-const lecturesByDate: Record<
-  string,
-  {
-    id: string;
-    subject: string;
-    time: string;
-    duration: string;
-    teacher: string;
-    presentPercent: number;
-  }[]
-> = {
-  "2025-03-10": [
-    {
-      id: "l1",
-      subject: "Physics",
-      time: "09:00 AM",
-      duration: "40 mins",
-      teacher: "Rajesh Sharma",
-      presentPercent: 85,
-    },
-    {
-      id: "l2",
-      subject: "Mathematics",
-      time: "10:00 AM",
-      duration: "40 mins",
-      teacher: "Amit Patel",
-      presentPercent: 92,
-    },
-    {
-      id: "l3",
-      subject: "English",
-      time: "11:00 AM",
-      duration: "40 mins",
-      teacher: "Priya Nair",
-      presentPercent: 78,
-    },
-  ],
-  "2025-03-11": [
-    {
-      id: "l4",
-      subject: "Chemistry",
-      time: "09:00 AM",
-      duration: "40 mins",
-      teacher: "Vikram Singh",
-      presentPercent: 88,
-    },
-    {
-      id: "l5",
-      subject: "Computer Science",
-      time: "10:00 AM",
-      duration: "40 mins",
-      teacher: "Sunita Verma",
-      presentPercent: 95,
-    },
-  ],
-  "2025-03-12": [
-    {
-      id: "l6",
-      subject: "Physics",
-      time: "09:00 AM",
-      duration: "40 mins",
-      teacher: "Rajesh Sharma",
-      presentPercent: 80,
-    },
-    {
-      id: "l7",
-      subject: "Mathematics",
-      time: "10:30 AM",
-      duration: "40 mins",
-      teacher: "Amit Patel",
-      presentPercent: 90,
-    },
-  ],
-  "2025-03-13": [
-    {
-      id: "l8",
-      subject: "English",
-      time: "09:00 AM",
-      duration: "40 mins",
-      teacher: "Priya Nair",
-      presentPercent: 82,
-    },
-  ],
-  "2025-03-14": [
-    {
-      id: "l9",
-      subject: "Chemistry",
-      time: "09:00 AM",
-      duration: "40 mins",
-      teacher: "Vikram Singh",
-      presentPercent: 91,
-    },
-    {
-      id: "l10",
-      subject: "Physics",
-      time: "11:00 AM",
-      duration: "40 mins",
-      teacher: "Rajesh Sharma",
-      presentPercent: 87,
-    },
-  ],
-};
-
 type View = "list" | "classDetail" | "dates" | "lectures" | "lectureDetail";
+
+const classDates: { date: string; day: string }[] = [];
+const lecturesByDate: Record<string, any[]> = {};
 
 interface AssignedTeacher {
   teacherId: string;
@@ -563,10 +455,6 @@ const IntermediateClasses = () => {
         professors={professors}
         students={interStudents}
         onBack={() => setView("list")}
-        onViewSchedule={() => {
-          setSelectedClass(selectedClassData.className);
-          setView("dates");
-        }}
         onRemoveTeacher={(teacherId) => {
           setSelectedClassData((prev: any) => ({
             ...prev,
