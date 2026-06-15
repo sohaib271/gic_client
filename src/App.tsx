@@ -38,6 +38,9 @@ const IntermediateClasses = lazy(() => import("./pages/IntermediateClasses"));
 const BsAdpClasses = lazy(() => import("./pages/BsAdpClasses"));
 const ProfessorDashboard = lazy(() => import("./pages/ProfessorDashboard"));
 const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
+const HodClasses = lazy(() => import("./pages/HodClasses"));
+const HodFaculty = lazy(() => import("./pages/HodFaculty"));
+const HodStudents = lazy(() => import("./pages/HodStudents"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -88,6 +91,9 @@ const App = () => (
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<ProfessorDashboard />} />
                 <Route path="classes" element={<ProfessorClasses />} />
+                <Route path="department/classes" element={<HodClasses />} />
+                <Route path="department/faculty" element={<HodFaculty />} />
+                <Route path="department/students" element={<HodStudents />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
