@@ -45,6 +45,7 @@ const Login = () => {
         }
 
         if (!cancelled) {
+          dispatch(setUser({ user: currentUser, token: AuthService.getToken() ?? "" }));
           navigate(currentUser.role === "admin" ? "/admin/dashboard" : "/professor/dashboard", {
             replace: true,
           });
@@ -88,11 +89,18 @@ const Login = () => {
       return;
     }
 
-    dispatch(setUser({ user: res?.user, token: res?.access_token }));
+    let loginUser = res?.user;
+    dispatch(setUser({ user: loginUser, token: res?.access_token }));
+    try {
+      loginUser = await UserService.getCurrentUser();
+      dispatch(setUser({ user: loginUser, token: res?.access_token }));
+    } catch {
+      // Keep the login response in store if the follow-up profile refresh fails.
+    }
     setError("");
 
-    if (res?.user.role === "admin") navigate("/admin/dashboard");
-    else if (res?.user.isHod === true) navigate("/professor/dashboard");
+    if (loginUser?.role === "admin") navigate("/admin/dashboard");
+    else if (loginUser?.isHod === true) navigate("/professor/dashboard");
     else {
       toast.error("Access denied");
     }

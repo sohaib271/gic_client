@@ -18,7 +18,7 @@ class UserService{
     const res=await fetch(`${API}/users/me`,{method:"GET",headers:this.authHeaders()});
 
     const result=await res.json();
-    return result;
+    return result?.user ?? result;
   }
   static async addProf(data){
     const res=await fetch(`${API}/users/professor`,{method:"POST",headers:this.authHeaders(),body:JSON.stringify(data)});

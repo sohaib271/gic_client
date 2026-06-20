@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, Users, Search, FileDown, X, CalendarCheck } from "lucide-react";
+import { Eye, Users, Search, FileDown, X, CalendarCheck, Plus } from "lucide-react";
 import { useSelector } from "react-redux";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
@@ -8,17 +8,50 @@ import { Input } from "@/components/ui/input";
 import { useUsers } from "@/hooks/useUsers";
 import UserService from "@/services/userService";
 import { toast } from "sonner";
+import { SEMESTERS } from "@/lib/academic";
+import { selectInputClass as selectClass } from "@/lib/formStyles";
+import { getCommonStudentValidationError } from "@/lib/studentValidation";
+import { StudentFormField as Field } from "@/components/students/StudentFormPrimitives";
+
+const defaultForm = {
+  name: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  password: "",
+  gender: "M",
+  address: "",
+  cnic: "",
+  department: "",
+  city: "",
+  session: "",
+  category: "bs",
+  class: "I",
+  subjects: "",
+  matricMarks: "",
+  interMarks: "",
+  shift: "Morning",
+  whatsappNumber: "",
+  doj: "",
+  rollNo: "",
+};
 
 const HodStudents = () => {
   const user = useSelector((state: any) => state?.user.user);
-  const { data: users, isLoading } = useUsers("student");
+  const { data: users, isLoading, refetch } = useUsers("student");
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<any | null>(null);
   const [attendanceFor, setAttendanceFor] = useState<any | null>(null);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(defaultForm);
 
   const deptId = user?.department?._id ?? user?.department;
+  const deptCategory = user?.department?.category;
+  const isIntermediateDept = deptCategory === "intermediate";
+  const availableSemesters = form.category === "adp" ? SEMESTERS.slice(0, 4) : SEMESTERS;
 
   const deptStudents = useMemo(
     () =>
@@ -35,6 +68,91 @@ const HodStudents = () => {
       s?.specialId?.toLowerCase().includes(search.toLowerCase()) ||
       s?.lastName?.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const set =
+    (key: string) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+      setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const openAddStudent = () => {
+    setForm({
+      ...defaultForm,
+      department: deptId ?? "",
+      category: isIntermediateDept ? "intermediate" : "bs",
+      class: "I",
+    });
+    setShowModal(true);
+  };
+
+  const validateStudent = () => {
+    const category = isIntermediateDept ? "intermediate" : form.category;
+    const commonError = getCommonStudentValidationError(
+      { ...form, category, department: deptId ?? "" },
+      false,
+      category === "intermediate" ? 1100 : 1200,
+    );
+    if (commonError) return commonError;
+    if (!deptId) return "Your department is missing from your account";
+    if (!form.rollNo || Number.isNaN(Number(form.rollNo))) return "Valid roll no is required";
+    if (category !== "intermediate" && (!form.interMarks || Number.isNaN(Number(form.interMarks)))) {
+      return "Valid inter marks are required";
+    }
+    return null;
+  };
+
+  const handleAddStudent = async () => {
+    const error = validateStudent();
+    if (error) {
+      toast.error(error);
+      return;
+    }
+
+    const category = isIntermediateDept ? "intermediate" : form.category;
+    setSaving(true);
+    try {
+      const payload = {
+        role: "student",
+        name: form.name,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        gender: form.gender,
+        address: form.address,
+        category,
+        cnic: form.cnic,
+        city: form.city,
+        class: form.class,
+        department: deptId,
+        session: form.session,
+        rollNo: Number(form.rollNo),
+        matricMarks: Number(form.matricMarks),
+        ...(category !== "intermediate" && {
+          interMarks: Number(form.interMarks),
+          shift: form.shift,
+        }),
+        subjects: form.subjects.split(",").map((s) => s.trim()).filter(Boolean),
+        ...(form.whatsappNumber && { whatsappNumber: form.whatsappNumber }),
+        doj: form.doj,
+      };
+      const res = await UserService.addStudent(payload);
+
+      if (res?.error || res?.statusCode >= 400) {
+        if (Array.isArray(res?.errors)) res.errors.forEach((e: string) => toast.error(e));
+        else toast.error(res?.message ?? "Failed to add student");
+        return;
+      }
+
+      toast.success(res?.message ?? "Student added successfully");
+      setShowModal(false);
+      setForm(defaultForm);
+      await refetch();
+    } catch {
+      toast.error("Network error, please try again");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const openAttendance = async (student: any) => {
     setAttendanceFor(student);
@@ -115,6 +233,9 @@ const HodStudents = () => {
           </span>
           <Button size="sm" variant="outline" onClick={generateReport} className="gap-1.5">
             <FileDown className="h-4 w-4" /> Generate Report
+          </Button>
+          <Button size="sm" onClick={openAddStudent} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Add Student
           </Button>
         </div>
       </motion.div>
@@ -297,6 +418,140 @@ const HodStudents = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowModal(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl bg-card shadow-modal">
+              <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                <div>
+                  <h2 className="font-display text-xl font-bold text-foreground">Add Department Student</h2>
+                  <p className="text-xs text-muted-foreground">Department is preset to {user?.department?.code ?? "your department"}</p>
+                </div>
+                <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="grid flex-1 gap-4 overflow-y-auto px-6 py-4 sm:grid-cols-2">
+                <Field label="First Name">
+                  <Input value={form.name} onChange={set("name")} />
+                </Field>
+                <Field label="Last Name">
+                  <Input value={form.lastName} onChange={set("lastName")} />
+                </Field>
+                <Field label="Email">
+                  <Input type="email" value={form.email} onChange={set("email")} />
+                </Field>
+                <Field label="Password">
+                  <Input type="password" value={form.password} onChange={set("password")} />
+                </Field>
+                <Field label="CNIC (13 digits, no dashes)">
+                  <Input maxLength={13} value={form.cnic} onChange={set("cnic")} />
+                </Field>
+                <Field label="Phone">
+                  <Input value={form.phone} onChange={set("phone")} />
+                </Field>
+                <Field label="Gender">
+                  <select className={selectClass} value={form.gender} onChange={set("gender")}>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                  </select>
+                </Field>
+                <Field label="Date of Joining">
+                  <Input type="date" value={form.doj} onChange={set("doj")} />
+                </Field>
+                <Field label="City">
+                  <Input value={form.city} onChange={set("city")} />
+                </Field>
+                <Field label="Roll No">
+                  <Input type="number" value={form.rollNo} onChange={set("rollNo")} />
+                </Field>
+                <Field label="Department" col2>
+                  <Input
+                    value={user?.department?.code ?? user?.department?.name ?? "Your department"}
+                    disabled
+                    className="bg-secondary/50 text-muted-foreground"
+                  />
+                </Field>
+
+                {!isIntermediateDept && (
+                  <Field label="Program">
+                    <select className={selectClass} value={form.category} onChange={(e) => {
+                      const category = e.target.value;
+                      const adpValues = SEMESTERS.slice(0, 4).map((s) => s.value);
+                      setForm((f) => ({
+                        ...f,
+                        category,
+                        class: category === "adp" && !adpValues.includes(f.class) ? "I" : f.class,
+                      }));
+                    }}>
+                      <option value="bs">BS</option>
+                      <option value="adp">ADP</option>
+                    </select>
+                  </Field>
+                )}
+
+                {isIntermediateDept ? (
+                  <Field label="Class">
+                    <select className={selectClass} value={form.class} onChange={set("class")}>
+                      <option value="I">1st Year</option>
+                      <option value="II">2nd Year</option>
+                    </select>
+                  </Field>
+                ) : (
+                  <Field label="Semester">
+                    <select className={selectClass} value={form.class} onChange={set("class")}>
+                      {availableSemesters.map((s) => (
+                        <option key={s.value} value={s.value}>{s.label} Semester</option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+
+                <Field label={isIntermediateDept ? "Session (e.g. 2023-2025)" : "Session (e.g. 2022-2026)"}>
+                  <Input value={form.session} onChange={set("session")} />
+                </Field>
+                <Field label='Matric Marks'>
+                  <Input type="number" value={form.matricMarks} onChange={set("matricMarks")} />
+                </Field>
+                {!isIntermediateDept && (
+                  <>
+                    <Field label="Inter Marks">
+                      <Input type="number" value={form.interMarks} onChange={set("interMarks")} />
+                    </Field>
+                    <Field label="Shift">
+                      <select className={selectClass} value={form.shift} onChange={set("shift")}>
+                        <option value="Morning">Morning</option>
+                        <option value="Evening">Evening</option>
+                      </select>
+                    </Field>
+                  </>
+                )}
+                <Field label="Subjects (comma separated, optional)" col2>
+                  <Input value={form.subjects} onChange={set("subjects")} />
+                </Field>
+                <Field label="WhatsApp Number (optional)" col2>
+                  <Input value={form.whatsappNumber} onChange={set("whatsappNumber")} />
+                </Field>
+                <Field label="Address" col2>
+                  <textarea value={form.address} onChange={set("address")}
+                    className="min-h-[72px] w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                </Field>
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
+                <Button variant="outline" onClick={() => setShowModal(false)} disabled={saving}>Cancel</Button>
+                <Button onClick={handleAddStudent} disabled={saving}>{saving ? "Saving..." : "Save Student"}</Button>
               </div>
             </motion.div>
           </motion.div>
