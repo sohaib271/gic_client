@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  Ban,
   ChevronLeft,
   UserCircle,
   GraduationCap,
@@ -13,9 +14,15 @@ import {
   Pencil,
   Trash2,
   ChevronDown,
+  Info,
+  RotateCcw,
 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { WEEKDAYS as DAYS } from "@/lib/academic";
+import { useAuth } from "@/hooks/useAuth";
+import { usePagination } from "@/hooks/usePagination";
+import PaginationControls from "@/components/PaginationControls";
 import ClassService from "@/services/classService";
 
 type Tab = "teachers" | "students";
@@ -56,6 +63,8 @@ interface Props {
   classData: any;
   professors: any[];
   students: any[];
+  canEditTeachers?: boolean;
+  canEditStudents?: boolean;
   onBack: () => void;
   onViewSchedule?: () => void;
   onRemoveTeacher: (teacherId: string) => void;
@@ -79,6 +88,25 @@ const resolveTeacherName = (t: AssignedTeacher): string => {
 };
 
 const resolveStudentId = (s: any): string => s?._id ?? s;
+
+const getDepartmentId = (value: any): string | undefined =>
+  value?.department?._id ?? value?.department;
+
+const formatPerson = (person: any): string => {
+  if (!person) return "Unknown";
+  if (typeof person !== "object") return person;
+  return `${person.name ?? ""} ${person.lastName ?? ""}`.trim() || person.specialId || "Unknown";
+};
+
+const formatDate = (date?: string | Date | null): string =>
+  date ? new Date(date).toLocaleDateString("en-GB") : "-";
+
+const sortHistoryDesc = (history: any[] = []) =>
+  [...history].sort((a, b) => {
+    const aTime = new Date(a.start ?? a.end ?? a.createdAt ?? 0).getTime();
+    const bTime = new Date(b.start ?? b.end ?? b.createdAt ?? 0).getTime();
+    return bTime - aTime;
+  });
 
 /** EditDayRow[] → flat ScheduleEntry[] for the API */
 const flattenRows = (rows: EditDayRow[]): ScheduleEntry[] =>
@@ -120,6 +148,8 @@ export default function ClassDetailView({
   classData,
   professors,
   students,
+  canEditTeachers = true,
+  canEditStudents = true,
   onBack,
   onViewSchedule,
   onRemoveTeacher,
@@ -128,6 +158,8 @@ export default function ClassDetailView({
   onAddStudents,
   onUpdateTeacherSchedule,
 }: Props) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("teachers");
   // ── Add-teacher modal ────────────────────────────────────────────────────
   const [showAddTeacher, setShowAddTeacher] = useState(false);
@@ -147,6 +179,10 @@ export default function ClassDetailView({
   const [studentSearch, setStudentSearch] = useState("");
   const [selectedNewStudents, setSelectedNewStudents] = useState<string[]>([]);
   const [addingStudents, setAddingStudents] = useState(false);
+  const [strikeTarget, setStrikeTarget] = useState<any | null>(null);
+  const [strikeReason, setStrikeReason] = useState("");
+  const [struckOffDetail, setStruckOffDetail] = useState<any | null>(null);
+  const [showFullStruckOffHistory, setShowFullStruckOffHistory] = useState(false);
 
   // ── Loading flags ────────────────────────────────────────────────────────
   const [removingTeacherId, setRemovingTeacherId] = useState<string | null>(
@@ -155,20 +191,54 @@ export default function ClassDetailView({
   const [removingStudentId, setRemovingStudentId] = useState<string | null>(
     null,
   );
+  const [strikingStudentId, setStrikingStudentId] = useState<string | null>(
+    null,
+  );
+  const [unstrikingStudentId, setUnstrikingStudentId] = useState<string | null>(
+    null,
+  );
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const assignedTeachers: AssignedTeacher[] = classData?.assignes ?? [];
   const classStudents: any[] = classData?.classStudents ?? [];
-
+  const canManageStudents = user?.role === "admin" || user?.role === "proff";
+  const teacherPagination = usePagination(assignedTeachers, 8);
+  const studentPagination = usePagination(classStudents, 10);
   const assignedTeacherIds = useMemo(
     () => new Set(assignedTeachers.map(resolveTeacherId)),
     [assignedTeachers],
   );
-
   const enrolledStudentIds = useMemo(
     () => new Set(classStudents.map(resolveStudentId)),
     [classStudents],
   );
+  const visibleStudentIds = useMemo(
+    () => studentPagination.pageItems.map(resolveStudentId),
+    [studentPagination.pageItems],
+  );
+
+  const { data: struckOffData } = useQuery({
+    queryKey: ["class-struck-off-records", classData?._id, studentPagination.page, visibleStudentIds],
+    queryFn: () =>
+      ClassService.getStruckOffRecords(
+        visibleStudentIds,
+        1,
+        studentPagination.pageSize,
+      ),
+    enabled: activeTab === "students" && classStudents.length > 0,
+    staleTime: 30_000,
+    retry: false,
+  });
+
+  const struckOffByStudentId = useMemo(() => {
+    const records = struckOffData?.struckOffRecords ?? [];
+    return new Map(
+      records.map((record: any) => [
+        typeof record.studentId === "object" ? record.studentId?._id : record.studentId,
+        record,
+      ]),
+    );
+  }, [struckOffData]);
 
   const filteredProfessors = useMemo(
     () =>
@@ -417,6 +487,70 @@ export default function ClassDetailView({
     }
   };
 
+  const canUnStruckStudent = (record: any, student: any) => {
+    const actionById =
+      typeof record?.currentStatus?.actionBy === "object"
+        ? record.currentStatus.actionBy?._id
+        : record?.currentStatus?.actionBy;
+    return (
+      user?.role === "admin" ||
+      ((user as any)?.isHod && getDepartmentId(user) === getDepartmentId(student)) ||
+      actionById === user?._id
+    );
+  };
+
+  const openStruckOffDetail = (record: any) => {
+    setShowFullStruckOffHistory(false);
+    setStruckOffDetail(record);
+  };
+
+  const confirmStruckOffStudent = async () => {
+    if (!strikeTarget) return;
+    if (!strikeReason.trim()) {
+      toast.error("Reason is required");
+      return;
+    }
+
+    const studentId = resolveStudentId(strikeTarget);
+    setStrikingStudentId(studentId);
+    try {
+      const res = await ClassService.struckOffStudent(
+        classData._id,
+        studentId,
+        strikeReason.trim(),
+      );
+      if (res?.statusCode >= 400 || res?.error) {
+        toast.error(res?.message ?? "Failed to struck off student");
+        return;
+      }
+      await queryClient.invalidateQueries({ queryKey: ["class-struck-off-records", classData?._id] });
+      toast.success("Student struck off");
+      setStrikeTarget(null);
+      setStrikeReason("");
+    } catch {
+      toast.error("Network error, please try again");
+    } finally {
+      setStrikingStudentId(null);
+    }
+  };
+
+  const handleUnStruckOffStudent = async (studentId: string) => {
+    setUnstrikingStudentId(studentId);
+    try {
+      const res = await ClassService.unStruckOffStudent(studentId);
+      if (res?.statusCode >= 400 || res?.error) {
+        toast.error(res?.message ?? "Failed to reinstate student");
+        return;
+      }
+      await queryClient.invalidateQueries({ queryKey: ["class-struck-off-records", classData?._id] });
+      toast.success("Student reinstated");
+    } catch {
+      toast.error("Network error, please try again");
+    } finally {
+      setUnstrikingStudentId(null);
+    }
+  };
+
   const confirmAddStudents = async () => {
     if (!selectedNewStudents.length) {
       toast.error("Select at least one student");
@@ -638,6 +772,7 @@ export default function ClassDetailView({
               {assignedTeachers.length} teacher
               {assignedTeachers.length !== 1 ? "s" : ""} assigned
             </p>
+            {canEditTeachers && (
             <button
               onClick={() => {
                 setShowAddTeacher(true);
@@ -647,6 +782,7 @@ export default function ClassDetailView({
             >
               <Plus className="h-3.5 w-3.5" /> Add Teacher
             </button>
+            )}
           </div>
 
           {!assignedTeachers.length && (
@@ -655,7 +791,7 @@ export default function ClassDetailView({
             </div>
           )}
 
-          {assignedTeachers.map((t, i) => {
+          {teacherPagination.pageItems.map((t, i) => {
             const tid = resolveTeacherId(t);
             const tname = resolveTeacherName(t);
             const isEditing = editingTeacherId === tid;
@@ -693,6 +829,7 @@ export default function ClassDetailView({
                       </p>
                     </div>
                   </div>
+                  {canEditTeachers && (
                   <div className="flex items-center gap-2 shrink-0 flex-wrap">
                     <button
                       onClick={() =>
@@ -714,6 +851,7 @@ export default function ClassDetailView({
                       {removingTeacherId === tid ? "Removing…" : "Remove"}
                     </button>
                   </div>
+                  )}
                 </div>
 
                 {/* Read-only schedule — grouped by day, multiple pills per day */}
@@ -768,6 +906,12 @@ export default function ClassDetailView({
               </motion.div>
             );
           })}
+          <PaginationControls
+            page={teacherPagination.page}
+            pageSize={teacherPagination.pageSize}
+            total={teacherPagination.total}
+            onPageChange={teacherPagination.setPage}
+          />
         </div>
       )}
 
@@ -781,6 +925,7 @@ export default function ClassDetailView({
               {classStudents.length} student
               {classStudents.length !== 1 ? "s" : ""} enrolled
             </p>
+            {canEditStudents && (
             <button
               onClick={() => {
                 setShowAddStudent(true);
@@ -791,6 +936,7 @@ export default function ClassDetailView({
             >
               <Plus className="h-3.5 w-3.5" /> Add Students
             </button>
+            )}
           </div>
 
           {!classStudents.length && (
@@ -804,7 +950,7 @@ export default function ClassDetailView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-secondary/50">
-                    {["#", "Student ID", "Name", "Action"].map((h) => (
+                    {["#", "Student ID", "Name", "Status", "Action"].map((h) => (
                       <th
                         key={h}
                         className={`px-4 py-3 font-display font-semibold text-foreground ${
@@ -817,8 +963,13 @@ export default function ClassDetailView({
                   </tr>
                 </thead>
                 <tbody>
-                  {classStudents.map((s: any, i: number) => {
+                  {studentPagination.pageItems.map((s: any, i: number) => {
                     const sid = resolveStudentId(s);
+                    const struckOffRecord = struckOffByStudentId.get(sid);
+                    const hasStruckOffHistory = Boolean(struckOffRecord);
+                    const isStruckOff = struckOffRecord?.currentStatus?.status === "struck_off";
+                    const canReinstate =
+                      isStruckOff && canUnStruckStudent(struckOffRecord, s);
                     return (
                       <motion.tr
                         key={sid}
@@ -828,7 +979,7 @@ export default function ClassDetailView({
                         className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors"
                       >
                         <td className="px-4 py-3 text-muted-foreground">
-                          {i + 1}
+                          {(studentPagination.page - 1) * studentPagination.pageSize + i + 1}
                         </td>
                         <td className="px-4 py-3 font-medium text-foreground">
                           {s?.specialId ?? "—"}
@@ -836,7 +987,69 @@ export default function ClassDetailView({
                         <td className="px-4 py-3 text-foreground">
                           {s?.name} {s?.lastName ?? ""}
                         </td>
+                        <td className="px-4 py-3">
+                          {isStruckOff ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive">
+                              <Ban className="h-3 w-3" /> Struck off
+                            </span>
+                          ) : hasStruckOffHistory ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                              <Check className="h-3 w-3" /> Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                              <Check className="h-3 w-3" /> Active
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-right">
+                          <div className="flex flex-wrap justify-end gap-2">
+                          {isStruckOff ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openStruckOffDetail(struckOffRecord)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-secondary transition-colors"
+                              >
+                                <Info className="h-3 w-3" /> Details
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUnStruckOffStudent(sid)}
+                                disabled={!canReinstate || unstrikingStudentId === sid}
+                                title={!canReinstate ? "Only the user who struck off this student, admin, or department HOD can reinstate" : undefined}
+                                className="inline-flex items-center gap-1 rounded-lg border border-green-300 px-2.5 py-1 text-xs text-green-700 hover:bg-green-50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                                {unstrikingStudentId === sid ? "Reinstating..." : "Reinstate"}
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                            {hasStruckOffHistory && (
+                              <button
+                                type="button"
+                                onClick={() => openStruckOffDetail(struckOffRecord)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-secondary transition-colors"
+                              >
+                                <Info className="h-3 w-3" /> Details
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStrikeTarget(s);
+                                setStrikeReason("");
+                              }}
+                              disabled={!canManageStudents || strikingStudentId === sid}
+                              className="inline-flex items-center gap-1 rounded-lg border border-destructive/30 px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Ban className="h-3 w-3" />
+                              {strikingStudentId === sid ? "Saving..." : "Struck Off"}
+                            </button>
+                            </>
+                          )}
+                          {canEditStudents && (
                           <button
                             onClick={() => handleRemoveStudent(sid)}
                             disabled={removingStudentId === sid}
@@ -845,12 +1058,20 @@ export default function ClassDetailView({
                             <Trash2 className="h-3 w-3" />
                             {removingStudentId === sid ? "Removing…" : "Remove"}
                           </button>
+                          )}
+                          </div>
                         </td>
                       </motion.tr>
                     );
                   })}
                 </tbody>
               </table>
+              <PaginationControls
+                page={studentPagination.page}
+                pageSize={studentPagination.pageSize}
+                total={studentPagination.total}
+                onPageChange={studentPagination.setPage}
+              />
             </div>
           )}
         </div>
@@ -859,6 +1080,191 @@ export default function ClassDetailView({
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* ADD TEACHER MODAL                                                */}
       {/* ══════════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {strikeTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => {
+              setStrikeTarget(null);
+              setStrikeReason("");
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl border border-border bg-card shadow-modal"
+            >
+              <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                <h2 className="font-display text-base font-bold text-foreground">
+                  Struck Off Student
+                </h2>
+                <button
+                  onClick={() => {
+                    setStrikeTarget(null);
+                    setStrikeReason("");
+                  }}
+                  className="rounded-lg p-1 hover:bg-secondary transition-colors"
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+              <div className="space-y-3 px-6 py-4">
+                <p className="text-sm font-medium text-foreground">
+                  {strikeTarget?.name} {strikeTarget?.lastName ?? ""}
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    {strikeTarget?.specialId}
+                  </span>
+                </p>
+                <textarea
+                  value={strikeReason}
+                  onChange={(e) => setStrikeReason(e.target.value)}
+                  placeholder="Reason is required"
+                  className="min-h-28 w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="flex gap-3 border-t border-border px-6 py-4">
+                <button
+                  onClick={() => {
+                    setStrikeTarget(null);
+                    setStrikeReason("");
+                  }}
+                  className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmStruckOffStudent}
+                  disabled={strikingStudentId === resolveStudentId(strikeTarget)}
+                  className="flex-1 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
+                >
+                  {strikingStudentId === resolveStudentId(strikeTarget) ? "Saving..." : "Confirm"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {struckOffDetail && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setStruckOffDetail(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-card shadow-modal"
+            >
+              <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                <h2 className="font-display text-base font-bold text-foreground">
+                  Struck Off Details
+                </h2>
+                <button
+                  onClick={() => setStruckOffDetail(null)}
+                  className="rounded-lg p-1 hover:bg-secondary transition-colors"
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+              <div className="space-y-4 overflow-y-auto px-6 py-4">
+                {(() => {
+                  const sortedHistory = sortHistoryDesc(struckOffDetail.history ?? []);
+                  const currentState =
+                    struckOffDetail.currentStatus?.status === "struck_off"
+                      ? struckOffDetail.currentStatus
+                      : sortedHistory[0];
+                  const hiddenHistory = sortedHistory.slice(1);
+                  const visibleHistory = showFullStruckOffHistory ? hiddenHistory : [];
+                  const isCurrentStruckOff = currentState?.status === "struck_off";
+
+                  return (
+                    <>
+                      <div className={`rounded-lg border p-4 text-sm ${
+                        isCurrentStruckOff
+                          ? "border-destructive/20 bg-destructive/5"
+                          : "border-green-200 bg-green-50"
+                      }`}>
+                        <p className="font-medium text-foreground">
+                          {struckOffDetail.studentId?.name} {struckOffDetail.studentId?.lastName ?? ""}
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            {struckOffDetail.studentId?.specialId}
+                          </span>
+                        </p>
+                        <p className={`mt-2 text-xs font-semibold ${
+                          isCurrentStruckOff ? "text-destructive" : "text-green-700"
+                        }`}>
+                          Current state: {isCurrentStruckOff ? "Struck off" : "Reinstated"}
+                        </p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Reason: {currentState?.reason || "-"}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          By: {formatPerson(currentState?.actionBy)}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Date: {formatDate(currentState?.start ?? currentState?.end ?? currentState?.createdAt)}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                            History
+                          </h3>
+                          {hiddenHistory.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setShowFullStruckOffHistory((value) => !value)}
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              {showFullStruckOffHistory ? "Show less" : `Show more (${hiddenHistory.length})`}
+                            </button>
+                          )}
+                        </div>
+                        {visibleHistory.length === 0 && hiddenHistory.length > 0 && (
+                          <p className="text-xs text-muted-foreground">Older history is hidden.</p>
+                        )}
+                        {visibleHistory.map((item: any, index: number) => (
+                          <div
+                            key={item._id ?? index}
+                            className="rounded-lg border border-border px-4 py-3 text-xs"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="font-semibold capitalize text-foreground">
+                                {item.status === "struck_off" ? "Struck off" : "Reinstated"}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {formatDate(item.start ?? item.end ?? item.createdAt)}
+                              </span>
+                            </div>
+                            {item.reason && (
+                              <p className="mt-1 text-muted-foreground">Reason: {item.reason}</p>
+                            )}
+                            <p className="mt-1 text-muted-foreground">
+                              By: {formatPerson(item.actionBy)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showAddTeacher && (
           <motion.div

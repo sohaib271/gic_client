@@ -5,6 +5,8 @@ import { WEEKDAYS as DAYS } from "@/lib/academic";
 import { ArrowLeft, Calendar, Clock, BookOpen, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTeacherSchedule } from "@/hooks/useTeacherSchedule";
+import PaginationControls from "@/components/PaginationControls";
+import { usePagination } from "@/hooks/usePagination";
 
 interface FacultyDetailViewProps {
   faculty: any;
@@ -26,15 +28,6 @@ const formatTime = (t: string) => {
 
 const FacultyDetailView = ({ faculty, type, onBack, autoShowSchedule = false }: FacultyDetailViewProps) => {
 
-  if (!faculty) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-16 rounded-xl border border-border bg-card animate-pulse" />
-        ))}
-      </div>
-    );
-  }
   const [showSchedule, setShowSchedule] = useState(autoShowSchedule);
   const isProfessor = type === "proff";
 
@@ -42,6 +35,7 @@ const FacultyDetailView = ({ faculty, type, onBack, autoShowSchedule = false }: 
   const { schedule, isLoading, error } = useTeacherSchedule(
     showSchedule && isProfessor ? faculty?._id : null
   );
+  const scheduleDetailPagination = usePagination(schedule, 6);
   // ✅ Build timetable grid from real schedule data
   const activeDays  = DAYS.filter((d) => schedule.some((s) => s.day === d));
   const displayDays = activeDays.length > 0 ? activeDays : DAYS.slice(0, 5);
@@ -52,6 +46,16 @@ const FacultyDetailView = ({ faculty, type, onBack, autoShowSchedule = false }: 
   // Lookup map: day||startTime → entry
   const lookup: Record<string, typeof schedule[0]> = {};
   schedule.forEach((s) => { lookup[`${s.day}||${s.startTime}`] = s; });
+
+  if (!faculty) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-16 rounded-xl border border-border bg-card animate-pulse" />
+        ))}
+      </div>
+    );
+  }
 
   const details: [string, string][] = [
     ["First Name",      faculty?.name       ?? "—"],
@@ -242,7 +246,6 @@ const FacultyDetailView = ({ faculty, type, onBack, autoShowSchedule = false }: 
         </tbody>
       </table>
     </div>
-
     {/* Summary footer */}
     <div className="flex flex-wrap items-center gap-4 px-4 py-3 border-t border-border bg-secondary/30 text-xs text-muted-foreground">
       <span>Total: <strong className="text-foreground">{schedule.length}</strong> lectures/week</span>
@@ -259,7 +262,7 @@ const FacultyDetailView = ({ faculty, type, onBack, autoShowSchedule = false }: 
               <p className="text-sm font-semibold text-foreground">Schedule Detail</p>
             </div>
             <div className="divide-y divide-border">
-              {schedule.map((s, i) => (
+              {scheduleDetailPagination.pageItems.map((s, i) => (
                 <div key={i} className="flex items-center justify-between px-4 py-3 hover:bg-secondary/20 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -277,6 +280,12 @@ const FacultyDetailView = ({ faculty, type, onBack, autoShowSchedule = false }: 
                 </div>
               ))}
             </div>
+            <PaginationControls
+              page={scheduleDetailPagination.page}
+              pageSize={scheduleDetailPagination.pageSize}
+              total={scheduleDetailPagination.total}
+              onPageChange={scheduleDetailPagination.setPage}
+            />
           </div>
         )}
       </motion.div>

@@ -176,6 +176,50 @@ class ClassService {
     return res.json();
   }
 
+  static async struckOffStudent(classId: string, studentId: string, reason: string) {
+    const today = new Date().toISOString().split("T")[0];
+    const res = await fetch(
+      `${API}/class/struck-off-student/${classId}/${studentId}${this.departmentQuery()}`,
+      {
+        method: "POST",
+        headers: this.authHeaders(),
+        body: JSON.stringify({ reason, start: today }),
+      },
+    );
+    return res.json();
+  }
+
+  static async unStruckOffStudent(studentId: string) {
+    const res = await fetch(
+      `${API}/class/unstruck-off-student/${studentId}${this.departmentQuery()}`,
+      {
+        method: "PATCH",
+        headers: this.authHeaders(),
+        body: JSON.stringify({}),
+      },
+    );
+    return res.json();
+  }
+
+  static async getStruckOffStudents(page = 1, limit = 25) {
+    const deptQuery = this.departmentQuery();
+    const separator = deptQuery ? "&" : "?";
+    const res = await fetch(`${API}/class/struck-off-students${deptQuery}${separator}page=${page}&limit=${limit}`, {
+      method: "GET",
+      headers: this.authHeaders(),
+    });
+    return res.json();
+  }
+
+  static async getStruckOffRecords(studentIds: string[], page = 1, limit = 25) {
+    const res = await fetch(`${API}/class/struck-off-records${this.departmentQuery()}`, {
+      method: "POST",
+      headers: this.authHeaders(),
+      body: JSON.stringify({ studentIds, page, limit }),
+    });
+    return res.json();
+  }
+
 static async markBulkAttendance(data: {
   classId: string;
   teacherId: string;

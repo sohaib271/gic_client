@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, Plus, X, ChevronRight } from "lucide-react";
+import { Eye, Plus, X } from "lucide-react";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import UserService from "@/services/userService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import FacultyDetailView from "@/components/FacultyDetailView";
+import PaginationControls from "@/components/PaginationControls";
+import { usePagination } from "@/hooks/usePagination";
 
 type FacultyType = "proff";
 
@@ -38,10 +40,10 @@ const Faculty = () => {
   const { data: users = [], isLoading, refetch } = useUsers("proff");
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<FacultyType>("proff");
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [detailFaculty, setDetailFaculty] = useState<any | null>(null);
   const [detailType, setDetailType] = useState<FacultyType>("proff");
+  const facultyPagination = usePagination(users, 10);
 
   const defaultForm = {
     firstName: "",
@@ -189,8 +191,8 @@ const Faculty = () => {
     );
   }
 
-  const renderTable = (data: any[], type: FacultyType, showAll: boolean) => {
-    const displayData = showAll ? data : data?.slice(0, 3);
+  const renderTable = (data: any[], type: FacultyType) => {
+    const displayData = data;
     const isProfessor = type === "proff";
     return (
       <div className="overflow-x-auto">
@@ -308,7 +310,6 @@ const Faculty = () => {
       </motion.div>
 
       {sections.map((section, sIdx) => {
-        const isExpanded = expandedSection === section.type;
         return (
           <motion.div
             key={section.type}
@@ -327,21 +328,6 @@ const Faculty = () => {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                {section.data.length > 3 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1 text-primary hover:text-primary text-xs sm:text-sm"
-                    onClick={() =>
-                      setExpandedSection(isExpanded ? null : section.type)
-                    }
-                  >
-                    {isExpanded ? "Show Less" : "View All"}
-                    <ChevronRight
-                      className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
-                    />
-                  </Button>
-                )}
                 <Button
                   size="sm"
                   className="gap-1.5 text-xs sm:text-sm"
@@ -351,7 +337,13 @@ const Faculty = () => {
                 </Button>
               </div>
             </div>
-            {renderTable(users, section.type, isExpanded)}
+            {renderTable(facultyPagination.pageItems, section.type)}
+            <PaginationControls
+              page={facultyPagination.page}
+              pageSize={facultyPagination.pageSize}
+              total={facultyPagination.total}
+              onPageChange={facultyPagination.setPage}
+            />
           </motion.div>
         );
       })}

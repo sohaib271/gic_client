@@ -11,6 +11,8 @@ import FacultyDetailView from "@/components/FacultyDetailView";
 import UserService from "@/services/userService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import PaginationControls from "@/components/PaginationControls";
+import { usePagination } from "@/hooks/usePagination";
 
 const selectClass = cn(
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base",
@@ -70,6 +72,7 @@ const HodFaculty = () => {
       }),
     [users, deptId, user?._id],
   );
+  const facultyPagination = usePagination(deptProfessors, 10);
 
   const set =
     (key: string) =>
@@ -283,11 +286,11 @@ const HodFaculty = () => {
             </tr>
           </thead>
           <tbody>
-            {deptProfessors.map((m: any, i: number) => (
+            {facultyPagination.pageItems.map((m: any, i: number) => (
               <motion.tr key={m?._id ?? i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
                 className="border-b border-border last:border-0 hover:bg-secondary/40 transition-colors">
-                <td className="p-3 sm:p-4 text-xs sm:text-sm">{String(i + 1).padStart(2, "0")}</td>
+                <td className="p-3 sm:p-4 text-xs sm:text-sm">{String((facultyPagination.page - 1) * facultyPagination.pageSize + i + 1).padStart(2, "0")}</td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm font-medium">{m?.name}</td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm">{m?.lastName}</td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">{m?.doj}</td>
@@ -324,6 +327,12 @@ const HodFaculty = () => {
             )}
           </tbody>
         </table>
+        <PaginationControls
+          page={facultyPagination.page}
+          pageSize={facultyPagination.pageSize}
+          total={facultyPagination.total}
+          onPageChange={facultyPagination.setPage}
+        />
       </div>
 
       {showModal && (

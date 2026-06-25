@@ -32,8 +32,8 @@ class UserService{
   }
 
   // userService.ts — add these
-static async getStruckOffStudents() {
-  const res = await fetch(`${API}/class/struck-off-students`, {
+static async getStruckOffStudents(page = 1, limit = 25) {
+  const res = await fetch(`${API}/class/struck-off-students?page=${page}&limit=${limit}`, {
     method: "GET",
     headers: this.authHeaders(),
   });

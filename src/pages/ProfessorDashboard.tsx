@@ -3,15 +3,31 @@ import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { Check, Clock, GraduationCap, History, QrCode } from "lucide-react";
 import FacultyDetailView from "@/components/FacultyDetailView";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import QRScanner from "@/components/QRScanner";
 import { useTeacherAttendanceHistory } from "@/hooks/useTeacherAttendance";
+import PaginationControls from "@/components/PaginationControls";
+import { usePagination } from "@/hooks/usePagination";
 
 const ProfessorDashboard = () => {
   const user = useSelector((state: any) => state?.user.user);
   const [showScanner, setShowScanner] = useState(false);
   const { records: attendanceRecords, isLoading: attendanceLoading } =
     useTeacherAttendanceHistory(user?._id ?? null);
+  const attendanceDays = useMemo(() => {
+    const grouped: Record<string, typeof attendanceRecords> = {};
+    attendanceRecords.forEach((record) => {
+      if (!record?.currentDate) return;
+      const dateKey = new Date(record.currentDate).toISOString().split("T")[0];
+      grouped[dateKey] = grouped[dateKey] ?? [];
+      grouped[dateKey].push(record);
+    });
+
+    return Object.entries(grouped)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([date, dayRecords]) => ({ date, dayRecords }));
+  }, [attendanceRecords]);
+  const attendancePagination = usePagination(attendanceDays, 8);
 
   // ✅ Guard — user not yet in store (e.g. first load before persist kicks in)
   if (!user) {
@@ -71,26 +87,18 @@ const ProfessorDashboard = () => {
           </div>
         )}
 
-        {!attendanceLoading && attendanceRecords.length === 0 && (
+        {!attendanceLoading && attendanceDays.length === 0 && (
           <div className="flex flex-col items-center justify-center p-10 text-center">
             <History className="mb-3 h-10 w-10 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">No attendance records found.</p>
           </div>
         )}
 
-        {!attendanceLoading && attendanceRecords.length > 0 && (() => {
-          const grouped: Record<string, typeof attendanceRecords> = {};
-          attendanceRecords.forEach((record) => {
-            const dateKey = new Date(record.currentDate).toISOString().split("T")[0];
-            grouped[dateKey] = grouped[dateKey] ?? [];
-            grouped[dateKey].push(record);
-          });
-
-          return (
-            <div className="divide-y divide-border">
-              {Object.entries(grouped)
-                .sort(([a], [b]) => b.localeCompare(a))
-                .map(([date, dayRecords]) => {
+        {!attendanceLoading && attendanceDays.length > 0 && (
+            <div>
+              <div className="divide-y divide-border">
+              {attendancePagination.pageItems
+                .map(({ date, dayRecords }) => {
                   const checkIn = dayRecords.find((record) => record.type === "check-in");
                   const checkOut = dayRecords.find((record) => record.type === "check-out");
                   return (
@@ -130,9 +138,15 @@ const ProfessorDashboard = () => {
                     </div>
                   );
                 })}
+              </div>
+              <PaginationControls
+                page={attendancePagination.page}
+                pageSize={attendancePagination.pageSize}
+                total={attendancePagination.total}
+                onPageChange={attendancePagination.setPage}
+              />
             </div>
-          );
-        })()}
+        )}
       </div>
        {showScanner && <QRScanner onClose={() => setShowScanner(false)} />}
     </motion.div>

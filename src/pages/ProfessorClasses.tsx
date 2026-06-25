@@ -6,6 +6,9 @@ import AttendanceMarker from "@/components/AttendanceMarker";
 import { useMyClasses } from "@/hooks/useMyClasses";
 import { useUsers } from "@/hooks/useUsers";
 import ManagedClassDetail from "@/components/ManagedClassDetail";
+import ClassDetailView from "@/components/ClassDetailView";
+import PaginationControls from "@/components/PaginationControls";
+import { usePagination } from "@/hooks/usePagination";
 
 type View = "list" | "classDetail" | "attendance";
 
@@ -16,6 +19,7 @@ const ProfessorClasses = () => {
   const [view, setView] = useState<View>("list");
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const departmentId = user?.department?._id ?? user?.department;
+  const classPagination = usePagination(classes, 10);
 
   const { departmentTeachers, departmentStudents } = useMemo(() => {
     const sameDepartment = (member: any) =>
@@ -64,6 +68,23 @@ const ProfessorClasses = () => {
 
   // ── Class detail view (read-only)
   if (view === "classDetail" && selectedClass) {
+    return (
+      <ClassDetailView
+        classData={selectedClass}
+        professors={departmentTeachers}
+        students={departmentStudents}
+        canEditTeachers={false}
+        canEditStudents={false}
+        onBack={() => setView("list")}
+        onViewSchedule={() => setView("attendance")}
+        onRemoveTeacher={() => undefined}
+        onRemoveStudent={() => undefined}
+        onAddTeachers={() => undefined}
+        onAddStudents={() => undefined}
+        onUpdateTeacherSchedule={() => undefined}
+      />
+    );
+
     const assignedTeachers = selectedClass.assignes || [];
     const classStudents = selectedClass.classStudents || [];
 
@@ -253,7 +274,7 @@ const ProfessorClasses = () => {
 
       {!loading && classes.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2">
-          {classes.map((cls, i) => {
+          {classPagination.pageItems.map((cls, i) => {
             const myAssignment = getMyAssignment(cls);
             const studentCount = (cls.classStudents || []).length;
             return (
@@ -301,6 +322,12 @@ const ProfessorClasses = () => {
           })}
         </div>
       )}
+      <PaginationControls
+        page={classPagination.page}
+        pageSize={classPagination.pageSize}
+        total={classPagination.total}
+        onPageChange={classPagination.setPage}
+      />
     </div>
   );
 };

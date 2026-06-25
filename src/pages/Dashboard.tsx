@@ -14,8 +14,11 @@ import UserService from "@/services/userService";
 import ClassService from "@/services/classService";
 import { toast } from "sonner";
 import TeacherAttendanceService from "@/services/teacherAttendanceService";
+import PaginationControls from "@/components/PaginationControls";
+import { usePagination } from "@/hooks/usePagination";
 
 const STUDENTS_PER_PAGE = 10;
+const STRUCK_OFF_PER_PAGE = 10;
 
 // ── Attendance report service helper ────────────────────────
 const fetchClassAttendance = async (classId: string, date: string) => {
@@ -45,6 +48,8 @@ const Dashboard = () => {
   const [currentPage,    setCurrentPage]    = useState(1);
   const [showStruckOff,  setShowStruckOff]  = useState(false);
   const [struckOffDetail, setStruckOffDetail] = useState<any | null>(null);
+  const [showFullStruckOffHistory, setShowFullStruckOffHistory] = useState(false);
+  const [struckOffPage, setStruckOffPage] = useState(1);
 
   // ── Attendance panel state
   const [attendanceScope,   setAttendanceScope]   = useState<"all" | "intermediate" | "bs_adp">("all");
@@ -75,12 +80,13 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
 
   // ── Struck off query
   const { data: struckOffData } = useQuery({
-    queryKey: ["struckOff"],
-    queryFn:  () => UserService.getStruckOffStudents(),
+    queryKey: ["struckOff", struckOffPage],
+    queryFn:  () => UserService.getStruckOffStudents(struckOffPage, STRUCK_OFF_PER_PAGE),
     enabled:  showStruckOff,
     retry:    false,
   });
   const struckOffList = struckOffData?.struckOffStudents ?? [];
+  const struckOffTotal = struckOffData?.total ?? struckOffList.length;
 
   // ── Filtered students for panel
   const filteredStudents = useMemo(() => {
@@ -157,7 +163,7 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
     URL.revokeObjectURL(url);
   };
 
-  const filteredProfessors = useMemo(() => {
+const filteredProfessors = useMemo(() => {
   if (!facultySearch.trim()) return professors;
   const q = facultySearch.toLowerCase();
   return professors.filter((p: any) =>
@@ -167,6 +173,7 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
     p?.department?.code?.toLowerCase().includes(q)
   );
 }, [professors, facultySearch]);
+const facultyPagination = usePagination(filteredProfessors, 10);
 
   // ── Faculty QR: fetch shared QR (no teacherId needed)
   const fetchFacultyQR = async () => {
@@ -274,7 +281,11 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
               </h2>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => { setShowStruckOff(!showStruckOff); setStruckOffDetail(null); }}
+                  onClick={() => {
+                    setShowStruckOff(!showStruckOff);
+                    setStruckOffDetail(null);
+                    setStruckOffPage(1);
+                  }}
                   className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                     showStruckOff
                       ? "bg-destructive/10 border-destructive/30 text-destructive"
@@ -308,7 +319,27 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
                   History — {struckOffDetail.studentId?.name} {struckOffDetail.studentId?.lastName}
                 </h3>
                 <div className="space-y-2">
-                  {(struckOffDetail.history ?? []).map((h: any, i: number) => (
+                  {(() => {
+                    const history = [...(struckOffDetail.history ?? [])].sort(
+                      (a: any, b: any) =>
+                        new Date(b.start ?? b.end ?? b.createdAt ?? 0).getTime() -
+                        new Date(a.start ?? a.end ?? a.createdAt ?? 0).getTime(),
+                    );
+                    const visibleHistory = showFullStruckOffHistory ? history : history.slice(0, 1);
+                    return (
+                      <>
+                        {history.length > 1 && (
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setShowFullStruckOffHistory((value) => !value)}
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              {showFullStruckOffHistory ? "Show less" : `Show more (${history.length - 1})`}
+                            </button>
+                          </div>
+                        )}
+                  {visibleHistory.map((h: any, i: number) => (
                     <div key={i} className={`rounded-lg border px-4 py-3 text-xs ${
                       h.status === "struck_off"
                         ? "bg-destructive/5 border-destructive/20"
@@ -335,6 +366,9 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
                       )}
                     </div>
                   ))}
+                      </>
+                    );
+                  })()}
                   {(!struckOffDetail.history || struckOffDetail.history.length === 0) && (
                     <p className="text-sm text-muted-foreground">No history found.</p>
                   )}
@@ -350,7 +384,10 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
                 )}
                 {struckOffList.map((s: any, i: number) => (
                   <div key={i}
-                    onClick={() => setStruckOffDetail(s)}
+                    onClick={() => {
+                      setShowFullStruckOffHistory(false);
+                      setStruckOffDetail(s);
+                    }}
                     className="flex items-center justify-between px-5 py-3 hover:bg-secondary/30 cursor-pointer transition-colors"
                   >
                     <div>
@@ -368,6 +405,12 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
                     <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   </div>
                 ))}
+                <PaginationControls
+                  page={struckOffPage}
+                  pageSize={STRUCK_OFF_PER_PAGE}
+                  total={struckOffTotal}
+                  onPageChange={setStruckOffPage}
+                />
               </div>
             )}
 
@@ -788,7 +831,7 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
                 </tr>
               </thead>
               <tbody>
-                {filteredProfessors.map((p: any, i: number) => (
+                {facultyPagination.pageItems.map((p: any, i: number) => (
                   <motion.tr
                     key={p._id}
                     initial={{ opacity: 0 }}
@@ -796,7 +839,7 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
                     transition={{ delay: i * 0.02 }}
                     className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors"
                   >
-                    <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{(facultyPagination.page - 1) * facultyPagination.pageSize + i + 1}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{p.specialId ?? "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -839,12 +882,13 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
             </table>
           </div>
 
-          {/* Footer count */}
-          <div className="px-5 py-3 border-t border-border bg-secondary/10">
-            <p className="text-xs text-muted-foreground">
-              Showing {filteredProfessors.length} of {professors.length} professors
-            </p>
-          </div>
+          <PaginationControls
+            page={facultyPagination.page}
+            pageSize={facultyPagination.pageSize}
+            total={facultyPagination.total}
+            onPageChange={facultyPagination.setPage}
+            className="bg-secondary/10"
+          />
         </>
       )}
     </motion.div>

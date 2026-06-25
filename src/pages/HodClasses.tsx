@@ -10,6 +10,8 @@ import { useClassForm } from "@/hooks/useClassForm";
 import { SEMESTERS as ALL_SEMESTERS, WEEKDAYS as DAYS } from "@/lib/academic";
 import ManagedClassDetail from "@/components/ManagedClassDetail";
 import AttendanceMarker from "@/components/AttendanceMarker";
+import PaginationControls from "@/components/PaginationControls";
+import { usePagination } from "@/hooks/usePagination";
 
 const HodClasses = () => {
   const user = useSelector((state: any) => state?.user.user);
@@ -43,6 +45,7 @@ const HodClasses = () => {
       ),
     [classes, deptId],
   );
+  const classPagination = usePagination(deptClasses, 10);
   const [showForm, setShowForm] = useState(false);
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [markingAttendance, setMarkingAttendance] = useState(false);
@@ -216,7 +219,7 @@ const HodClasses = () => {
 
       {!isLoading && deptClasses.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2">
-          {deptClasses.map((cls: any, i: number) => (
+          {classPagination.pageItems.map((cls: any, i: number) => (
             <motion.button key={cls._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }} onClick={() => setSelectedClass(cls)}
               className="text-left rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-lg transition-all">
@@ -243,6 +246,13 @@ const HodClasses = () => {
       )}
 
       {/* ── Create Class Modal ── */}
+      <PaginationControls
+        page={classPagination.page}
+        pageSize={classPagination.pageSize}
+        total={classPagination.total}
+        onPageChange={classPagination.setPage}
+      />
+
       <AnimatePresence>
         {showForm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

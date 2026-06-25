@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Save, Check, AlertCircle, History, X, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import ClassService from "@/services/classService";
+import PaginationControls from "@/components/PaginationControls";
+import { usePagination } from "@/hooks/usePagination";
 
 type AttendanceStatus = "P" | "A" | "L";
 
@@ -45,6 +47,24 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
   const [history,        setHistory]        = useState<any>({});
   const [historyLoading, setHistoryLoading] = useState(false);
   const [expandedDate,   setExpandedDate]   = useState<string | null>(null);
+
+  const studentPagination = usePagination(students, 12);
+
+  const historyGroups = useMemo(() => {
+    return Object.entries(history)
+      .flatMap(([cid, classHistory]: any) =>
+        Object.entries(classHistory?.dates ?? {}).map(([dateKey, records]: any) => ({
+          cid,
+          className: classHistory?.className ?? classData?.className ?? "Class",
+          dateKey,
+          records: Array.isArray(records) ? records : [],
+          totalSessions: Object.keys(classHistory?.dates ?? {}).length,
+        })),
+      )
+      .sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+  }, [history, classData?.className]);
+
+  const historyPagination = usePagination(historyGroups, 5);
 
   // ── Load existing attendance when date changes
   useEffect(() => {
@@ -277,16 +297,17 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map((s: any, i: number) => {
+                  {studentPagination.pageItems.map((s: any, i: number) => {
                     const sid            = s?._id || s;
                     const status         = attendance[sid] || "P";
                     const existingRecord = getExistingRecord(sid);
+                    const rowNumber      = (studentPagination.page - 1) * studentPagination.pageSize + i + 1;
 
                     return (
                       <motion.tr key={sid} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                         transition={{ delay: i * 0.02 }}
                         className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
-                        <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{rowNumber}</td>
                         <td className="px-4 py-3 font-medium text-foreground">{s?.specialId ?? "—"}</td>
                         <td className="px-4 py-3 text-foreground">{s?.name} {s?.lastName ?? ""}</td>
                         <td className="px-4 py-3">
@@ -333,6 +354,12 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
                   })}
                 </tbody>
               </table>
+              <PaginationControls
+                page={studentPagination.page}
+                pageSize={studentPagination.pageSize}
+                total={studentPagination.total}
+                onPageChange={studentPagination.setPage}
+              />
             </div>
           )}
 
@@ -361,36 +388,33 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
             </div>
           )}
 
-          {!historyLoading && Object.keys(history).length === 0 && (
+          {!historyLoading && historyGroups.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-12 text-center">
               <History className="h-10 w-10 text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">No attendance history yet.</p>
             </div>
           )}
 
-          {!historyLoading && Object.entries(history).map(([cid, classHistory]: any) => (
-            <div key={cid} className="rounded-xl border border-border bg-card overflow-hidden shadow-card">
-              <div className="px-4 py-3 border-b border-border bg-secondary/30">
-                <p className="text-sm font-semibold text-foreground">{classHistory.className}</p>
-                <p className="text-xs text-muted-foreground">{Object.keys(classHistory.dates).length} sessions recorded</p>
-              </div>
+          {!historyLoading && historyGroups.length > 0 && (
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-card">
               <div className="divide-y divide-border">
-                {Object.entries(classHistory.dates)
-                  .sort(([a], [b]) => b.localeCompare(a))
-                  .map(([dateKey, records]: any) => {
+                {historyPagination.pageItems
+                  .map(({ cid, className, dateKey, records, totalSessions }: any) => {
                     const present    = records.filter((r: any) => r.attendenceStatus === "P").length;
                     const absent     = records.filter((r: any) => r.attendenceStatus === "A").length;
                     const leave      = records.filter((r: any) => r.attendenceStatus === "L").length;
                     const isExpanded = expandedDate === `${cid}-${dateKey}`;
 
                     return (
-                      <div key={dateKey}>
+                      <div key={`${cid}-${dateKey}`}>
                         <button
+                          type="button"
                           onClick={() => setExpandedDate(isExpanded ? null : `${cid}-${dateKey}`)}
                           className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/20 transition-colors text-left">
                           <div>
+                            <p className="text-sm font-semibold text-foreground">{className}</p>
                             <p className="text-sm font-medium text-foreground">{dateKey}</p>
-                            <p className="text-xs text-muted-foreground">{records.length} students</p>
+                            <p className="text-xs text-muted-foreground">{records.length} students · {totalSessions} sessions recorded</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full">P:{present}</span>
@@ -427,13 +451,22 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
                               </div>
                             </motion.div>
                           )}
-                        </AnimatePresence>
+                          </AnimatePresence>
                       </div>
                     );
                   })}
               </div>
+              <PaginationControls
+                page={historyPagination.page}
+                pageSize={historyPagination.pageSize}
+                total={historyPagination.total}
+                onPageChange={(page) => {
+                  setExpandedDate(null);
+                  historyPagination.setPage(page);
+                }}
+              />
             </div>
-          ))}
+          )}
         </div>
       )}
 

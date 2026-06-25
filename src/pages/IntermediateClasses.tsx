@@ -19,6 +19,7 @@ import ClassService from "@/services/classService";
 import { useClasses } from "@/hooks/useClasses";
 import ClassDetailView from "@/components/ClassDetailView";
 import { WEEKDAYS as DAYS } from "@/lib/academic";
+import PaginationControls from "@/components/PaginationControls";
 
 type View = "list" | "classDetail" | "dates" | "lectures" | "lectureDetail";
 
@@ -68,6 +69,8 @@ const IntermediateClasses = () => {
   const [selectedLecture, setSelectedLecture] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [classPages, setClassPages] = useState<Record<string, number>>({});
+  const classPageSize = 6;
 
   // ── form state
   const defaultForm = {
@@ -611,7 +614,10 @@ const IntermediateClasses = () => {
           </div>
         )}
 
-        {classesByDept?.map(({ dept, classes: deptClasses }, i) => (
+        {classesByDept?.map(({ dept, classes: deptClasses }, i) => {
+          const page = classPages[dept._id] ?? 1;
+          const pageClasses = deptClasses.slice((page - 1) * classPageSize, page * classPageSize);
+          return (
           <motion.div
             key={dept._id}
             initial={{ opacity: 0, y: 15 }}
@@ -654,7 +660,7 @@ const IntermediateClasses = () => {
                   className="overflow-hidden"
                 >
                   <div className="border-t border-border px-4 py-3 space-y-2">
-                    {deptClasses.map((cls: any) => (
+                    {pageClasses.map((cls: any) => (
                       <div
                         key={cls._id}
                         onClick={() => {
@@ -696,11 +702,20 @@ const IntermediateClasses = () => {
                       </div>
                     ))}
                   </div>
+                  <PaginationControls
+                    page={page}
+                    pageSize={classPageSize}
+                    total={deptClasses.length}
+                    onPageChange={(nextPage) =>
+                      setClassPages((current) => ({ ...current, [dept._id]: nextPage }))
+                    }
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ══ ADD CLASS MODAL ══════════════════════════════════════ */}

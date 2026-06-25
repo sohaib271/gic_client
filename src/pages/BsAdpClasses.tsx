@@ -11,6 +11,7 @@ import ClassService from "@/services/classService";
 import { useClasses } from "@/hooks/useClasses";
 import ClassDetailView from "@/components/ClassDetailView";
 import { SEMESTERS as ALL_SEMESTERS, WEEKDAYS as DAYS } from "@/lib/academic";
+import PaginationControls from "@/components/PaginationControls";
 
 type View = "list" | "classDetail" | "dates" | "lectures" | "lectureDetail";
 
@@ -74,6 +75,8 @@ const BsAdpClasses = () => {
   const [selectedLecture, setSelectedLecture] = useState("");
   const [showAddForm,     setShowAddForm]     = useState(false);
   const [saving,          setSaving]          = useState(false);
+  const [classPages, setClassPages] = useState<Record<string, number>>({});
+  const classPageSize = 6;
 
   // ── form state
   const defaultForm = {
@@ -465,7 +468,10 @@ const BsAdpClasses = () => {
           </div>
         )}
 
-        {classesByDept.map(({ dept, classes: deptClasses }, i) => (
+        {classesByDept.map(({ dept, classes: deptClasses }, i) => {
+          const page = classPages[dept._id] ?? 1;
+          const pageClasses = deptClasses.slice((page - 1) * classPageSize, page * classPageSize);
+          return (
           <motion.div key={dept._id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 + i * 0.05 }}
             className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
@@ -493,7 +499,7 @@ const BsAdpClasses = () => {
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                   <div className="border-t border-border px-4 py-3 space-y-2">
-                    {deptClasses.map((cls: any) => (
+                    {pageClasses.map((cls: any) => (
                       <div key={cls._id}
                         onClick={() => { setSelectedClassData(cls); setSelectedSection(cls.className); setView("classDetail"); }}
                         className="flex items-center justify-between gap-2 rounded-lg bg-secondary/50 px-4 py-3 cursor-pointer hover:bg-secondary transition-colors">
@@ -518,11 +524,20 @@ const BsAdpClasses = () => {
                       </div>
                     ))}
                   </div>
+                  <PaginationControls
+                    page={page}
+                    pageSize={classPageSize}
+                    total={deptClasses.length}
+                    onPageChange={(nextPage) =>
+                      setClassPages((current) => ({ ...current, [dept._id]: nextPage }))
+                    }
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ══ ADD CLASS MODAL ══════════════════════════════════════ */}
