@@ -45,7 +45,7 @@ const Login = () => {
         }
 
         if (!cancelled) {
-          dispatch(setUser({ user: currentUser, token: AuthService.getToken() ?? "" }));
+          dispatch(setUser({ user: currentUser}));
           navigate(currentUser.role === "admin" ? "/admin/dashboard" : "/professor/dashboard", {
             replace: true,
           });
@@ -90,10 +90,10 @@ const Login = () => {
     }
 
     let loginUser = res?.user;
-    dispatch(setUser({ user: loginUser, token: res?.access_token }));
+    dispatch(setUser({ user: loginUser }));
     try {
       loginUser = await UserService.getCurrentUser();
-      dispatch(setUser({ user: loginUser, token: res?.access_token }));
+      dispatch(setUser({ user: loginUser}));
     } catch {
       // Keep the login response in store if the follow-up profile refresh fails.
     }

@@ -1,73 +1,107 @@
-# Welcome to your Lovable project
+# GIC College Management System (Admin & HOD Panel) — Frontend
 
-## Project info
+A React + TypeScript admin and professor(HOD) portal for managing students, faculty, classes, and attendance.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+---
 
-## How can I edit this code?
+## Tech Stack
 
-There are several ways of editing your application.
+- **React 18** with TypeScript
+- **Vite** — build tool
+- **Tailwind CSS** + **shadcn/ui** — styling and components
+- **Framer Motion** — animations
+- **Redux Toolkit** — global auth state, persisted to `localStorage`
+- **TanStack Query** — server state and data fetching
+- **Sonner** — toast notifications
+- **html5-qrcode** — QR code scanning (professor attendance)
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Project Structure
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+├── components/          # Shared UI components
+│   ├── AttendanceMarker.tsx
+│   ├── ClassDetail.tsx
+│   ├── ConfirmDeleteModal.tsx
+│   ├── FacultyDetailView.tsx
+│   ├── QRScanner.tsx
+│   ├── TeacherQRModal.tsx
+│   └── TableSkeleton.tsx
+├── hooks/               # Custom React hooks
+│   ├── useUsers.ts
+│   ├── useClasses.ts
+│   ├── useMyClasses.ts
+│   ├── useDepartments.ts
+│   ├── useTeacherSchedule.ts
+│   └── useTeacherAttendanceHistory.ts
+├── pages/               # Route-level pages
+│   ├── admin/
+│   │   ├── Dashboard.tsx
+│   │   ├── Faculty.tsx
+│   │   ├── IntermediateStudents.tsx
+│   │   ├── BsAdpStudents.tsx
+│   │   ├── IntermediateClasses.tsx
+│   │   └── BsAdpClasses.tsx
+│   └── professor/
+│       ├── ProfessorDashboard.tsx
+│       └── ProfessorClasses.tsx
+├── services/            # API service classes
+│   ├── userService.ts
+│   ├── classService.ts
+│   ├── teacherAttendanceService.ts
+│   └── otherService.ts
+└── store/               # Redux store
+    ├── store.ts
+    └── userSlice.ts
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Roles & Access
 
-**Use GitHub Codespaces**
+| Role | Access |
+|---|---|
+| `admin` | Full dashboard, faculty, students, classes, reports |
+| `proff (HOD)` | Own dashboard, assigned classes, attendance marking, QR scan, CRUD their Department classes,faculty and students |
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## Key Features
 
-This project is built with:
+### Admin
+- **Dashboard** — live student counts, attendance report generator, faculty list with attendance history, struck-off students with history, Faculty QR panel
+- **Students** — add/edit/delete intermediate and BS/ADP students, bulk upload via Excel, detail view
+- **Faculty** — add professors/principal/VP, view schedule, generate QR code
+- **Classes** — create and manage classes by category (intermediate/BS/ADP), assign teachers with schedules, enroll students, struck-off management
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Professor (HOD)
+- **Dashboard** — personal timetable with past/live/upcoming lecture states, attendance history
+- **Classes** — view assigned & department classes, mark bulk attendance, update individual student attendance, view history, struck/unstruck students from assigned classes and department, add/remove teacher student from their department classes
+- **QR Scan** — scan admin's QR code to check in/check out with GPS validation
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Auth Flow
 
-## Can I connect a custom domain to my Lovable project?
+Login → Secure HTTP-only JWT cookie set by backend → Automatic cookie inclusion via browser on all API requests → Role-based routing handled via login response.
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Bulk Upload Format
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Excel columns must match exactly (order does not matter):
+
+```
+name | lastName | email | phone | password | gender | address | cnic
+department | city | session | category | class | subjects | matricMarks | doj
+```
+
+Download a blank template from the Upload Bulk button in the students pages.
+
+---
+
+## Environment
+
+No `.env` required. The API base URL is set directly in `src/services/otherService.ts`. Change it before building for production:

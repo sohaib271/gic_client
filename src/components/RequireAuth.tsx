@@ -13,17 +13,11 @@ interface RequireAuthProps {
 
 const RequireAuth = ({ children, role, requireHod = false }: RequireAuthProps) => {
   const dispatch = useDispatch();
-  const { user, token } = useSelector((state: any) => state.user);
-  const [checking, setChecking] = useState(!!token);
+  const { user } = useSelector((state: any) => state.user);
+  const [checking, setChecking] = useState(true);
   const [valid, setValid] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      setChecking(false);
-      setValid(false);
-      return;
-    }
-
     let cancelled = false;
 
     const verify = async () => {
@@ -37,7 +31,7 @@ const RequireAuth = ({ children, role, requireHod = false }: RequireAuthProps) =
           throw new Error("Access denied");
         }
         if (!cancelled) {
-          dispatch(setUser({ user: currentUser, token }));
+          dispatch(setUser({ user: currentUser }));
           setValid(true);
         }
       } catch {
@@ -54,10 +48,10 @@ const RequireAuth = ({ children, role, requireHod = false }: RequireAuthProps) =
     return () => {
       cancelled = true;
     };
-  }, [dispatch, requireHod, role, token]);
+  }, [dispatch, requireHod, role]);
 
   if (checking) return <LoadingScreen />;
-  if (!token || !user || !valid) return <Navigate to="/" replace />;
+  if (!user || !valid) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 };

@@ -27,8 +27,8 @@ const fetchClassAttendance = async (classId: string, date: string) => {
     {
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${(await import("@/store/store")).store.getState().user.token}`,
       },
+      credentials: "include",
     }
   );
   return res.json();

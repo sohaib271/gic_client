@@ -2,14 +2,9 @@ import { store } from "@/store/store";
 import { API } from "./otherService";
 
 class ClassService {
-  static getToken() {
-    return store.getState().user.token;
-  }
-
   private static authHeaders() {
     return {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${this.getToken()}`,
     };
   }
 
@@ -25,6 +20,7 @@ class ClassService {
     const res = await fetch(`${API}/class/create${this.departmentQuery()}`, {
       method: "POST",
       headers: this.authHeaders(),
+      credentials:"include",
       body: JSON.stringify(data),
     });
     return res.json();
@@ -38,6 +34,7 @@ class ClassService {
     const res = await fetch(`${API}/class/all${query}`, {
       method: "GET",
       headers: this.authHeaders(),
+      credentials:"include",
     });
     return res.json();
   }
@@ -46,6 +43,7 @@ class ClassService {
     const res = await fetch(`${API}/class/my-classes`, {
       method: "GET",
       headers: this.authHeaders(),
+      credentials:"include",
     });
     return res.json();
   }
@@ -54,6 +52,7 @@ class ClassService {
     const res = await fetch(`${API}/class/get-class-info/${classId}`, {
       method: "GET",
       headers: this.authHeaders(),
+      credentials:"include",
     });
     return res.json();
   }
@@ -62,6 +61,7 @@ class ClassService {
     const res = await fetch(`${API}/class/get-class-students/${classId}${this.departmentQuery()}`, {
       method: "GET",
       headers: this.authHeaders(),
+      credentials:"include",
     });
     return res.json();
   }
@@ -70,6 +70,7 @@ class ClassService {
     const res = await fetch(`${API}/class/get-assigned-teachers/${classId}${this.departmentQuery()}`, {
       method: "GET",
       headers: this.authHeaders(),
+      credentials:"include",
     });
     return res.json();
   }
@@ -78,6 +79,7 @@ class ClassService {
     const res = await fetch(`${API}/class/update-class/${classId}${this.departmentQuery()}`, {
       method: "PATCH",
       headers: this.authHeaders(),
+      credentials:"include",
       body: JSON.stringify(data),
     });
     return res.json();
@@ -94,6 +96,7 @@ class ClassService {
     const res = await fetch(`${API}/class/assign-teacher-to-class/${classId}${this.departmentQuery()}`, {
       method: "POST",
       headers: this.authHeaders(),
+      credentials:"include",
       body: JSON.stringify(payload),
     });
     return res.json();
@@ -105,6 +108,7 @@ class ClassService {
       {
         method: "PATCH",
         headers: this.authHeaders(),
+        credentials:"include",
       }
     );
     return res.json();
@@ -118,6 +122,7 @@ class ClassService {
     const res = await fetch(`${API}/class/${classId}/assignes/${teacherId}${this.departmentQuery()}`, {
       method: "PATCH",
       headers: this.authHeaders(),
+      credentials:"include",
       body: JSON.stringify(data),
     });
     return res.json();
@@ -132,6 +137,7 @@ class ClassService {
       {
         method: "PATCH",
         headers: this.authHeaders(),
+        credentials:"include",
         body: JSON.stringify({ schedule }),
       }
     );
@@ -148,6 +154,7 @@ class ClassService {
       {
         method: "POST",
         headers: this.authHeaders(),
+        credentials:"include",
         body: JSON.stringify({ schedule }),
       }
     );
@@ -160,6 +167,7 @@ class ClassService {
       {
         method: "POST",
         headers: this.authHeaders(),
+        credentials:"include",
       }
     );
     return res.json();
@@ -171,6 +179,7 @@ class ClassService {
       {
         method: "PATCH",
         headers: this.authHeaders(),
+        credentials:"include",
       }
     );
     return res.json();
@@ -183,6 +192,7 @@ class ClassService {
       {
         method: "POST",
         headers: this.authHeaders(),
+        credentials:"include",
         body: JSON.stringify({ reason, start: today }),
       },
     );
@@ -195,6 +205,7 @@ class ClassService {
       {
         method: "PATCH",
         headers: this.authHeaders(),
+        credentials:"include",
         body: JSON.stringify({}),
       },
     );
@@ -207,6 +218,7 @@ class ClassService {
     const res = await fetch(`${API}/class/struck-off-students${deptQuery}${separator}page=${page}&limit=${limit}`, {
       method: "GET",
       headers: this.authHeaders(),
+      credentials:"include",
     });
     return res.json();
   }
@@ -215,6 +227,7 @@ class ClassService {
     const res = await fetch(`${API}/class/struck-off-records${this.departmentQuery()}`, {
       method: "POST",
       headers: this.authHeaders(),
+      credentials:"include",
       body: JSON.stringify({ studentIds, page, limit }),
     });
     return res.json();
@@ -230,6 +243,7 @@ static async markBulkAttendance(data: {
   const res = await fetch(`${API}/attendance/mark-bulk`, {
     method: "POST",
     headers: this.authHeaders(),
+    credentials:"include",
     body: JSON.stringify(data),
   });
   return res.json();
@@ -244,6 +258,7 @@ static async updateStudentAttendance(attendanceId: string, data: {
   const res = await fetch(`${API}/attendance/update/${attendanceId}`, {
     method: "PATCH",
     headers: this.authHeaders(),
+    credentials:"include",
     body: JSON.stringify(data),
   });
   return res.json();
@@ -252,7 +267,7 @@ static async updateStudentAttendance(attendanceId: string, data: {
 static async getClassAttendanceByTeacher(classId: string, teacherId: string, date: string) {
   const res = await fetch(
     `${API}/attendance/class/${classId}/by-teacher?teacherId=${teacherId}&date=${date}`,
-    { method: "GET", headers: this.authHeaders() }
+    { method: "GET", headers: this.authHeaders(),credentials:"include", }
   );
   return res.json();
 }
@@ -262,6 +277,7 @@ static async getMyAttendanceHistory(teacherId: string, classId?: string) {
   const res = await fetch(`${API}/attendance/my-history${query}`, {
     method: "GET",
     headers: this.authHeaders(),
+    credentials:"include",
   });
   return res.json();
 }
@@ -270,6 +286,7 @@ static async getMyAttendanceHistory(teacherId: string, classId?: string) {
     const res = await fetch(`${API}/class/${classId}/attendance?date=${date}`, {
       method: "GET",
       headers: this.authHeaders(),
+      credentials:"include",
     });
     return res.json();
   }
@@ -279,6 +296,7 @@ static async getAttendanceByDate(classId: string, date: string) {
   const res = await fetch(`${API}/attendance/class/${classId}?date=${date}`, {
     method: "GET",
     headers: this.authHeaders(),
+    credentials:"include",
   });
   return res.json();
 }

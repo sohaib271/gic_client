@@ -1,6 +1,5 @@
 // hooks/useTeacherAttendanceHistory.ts
 import { useState, useEffect } from "react";
-import { store } from "@/store/store";
 import { API } from "@/services/otherService";
 
 export interface AttendanceRecord {
@@ -24,9 +23,8 @@ export const useTeacherAttendanceHistory = (teacherId: string | null) => {
       setIsLoading(true);
       setError(null);
       try {
-        const token = store.getState().user.token;
         const res   = await fetch(`${API}/teacher/attendance/${teacherId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
         });
         const data = await res.json();
         if (!cancelled) setRecords(data?.attendanceRecords ?? []);
