@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import LoadingScreen from "@/components/LoadingScreen";
 import UserService from "@/services/userService";
 import { clearUser, setUser } from "@/store/userSlice";
+import { isHodProfessor, isValidUserResponse, normalizeRole } from "@/lib/auth";
 
 interface RequireAuthProps {
   children: React.ReactNode;
@@ -24,10 +25,10 @@ const RequireAuth = ({ children, role, requireHod = false }: RequireAuthProps) =
       setChecking(true);
       try {
         const currentUser = await UserService.getCurrentUser();
-        if (currentUser?.statusCode >= 400 || currentUser?.error || !currentUser?.role) {
+        if (!isValidUserResponse(currentUser)) {
           throw new Error("Invalid session");
         }
-        if (currentUser.role !== role || (requireHod && !currentUser.isHod)) {
+        if (normalizeRole(currentUser.role) !== role || (requireHod && !isHodProfessor(currentUser))) {
           throw new Error("Access denied");
         }
         if (!cancelled) {
