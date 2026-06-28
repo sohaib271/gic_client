@@ -11,6 +11,7 @@ import { useDispatch } from "react-redux";
 import { clearUser, setUser } from "@/store/userSlice";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { isAdminUser, isHodProfessor, isValidUserResponse } from "@/lib/auth";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -35,18 +36,18 @@ const Login = () => {
       setCheckingSession(true);
       try {
         const currentUser = await UserService.getCurrentUser();
-        if (currentUser?.statusCode >= 400 || currentUser?.error || !currentUser?.role) {
+        if (!isValidUserResponse(currentUser)) {
           throw new Error("Invalid session");
         }
 
         // Block plain professors (non-HOD) from restoring a session
-        if (currentUser.role === "proff" && !currentUser.isHod) {
+        if (!isAdminUser(currentUser) && !isHodProfessor(currentUser)) {
           throw new Error("Professors cannot log in");
         }
 
         if (!cancelled) {
           dispatch(setUser({ user: currentUser}));
-          navigate(currentUser.role === "admin" ? "/admin/dashboard" : "/professor/dashboard", {
+          navigate(isAdminUser(currentUser) ? "/admin/dashboard" : "/professor/dashboard", {
             replace: true,
           });
         }
@@ -81,7 +82,12 @@ const Login = () => {
       setLoading(false);
       return;
     }
-    if (res?.user?.role === "proff" && !res?.user?.isHod) {
+    if (!isValidUserResponse(res?.user)) {
+      toast.error(res?.message || "Invalid login response");
+      setLoading(false);
+      return;
+    }
+    if (!isAdminUser(res?.user) && !isHodProfessor(res?.user)) {
       toast.error("Access denied — only HOD professors can log in");
       setLoading(false);
       return;
@@ -90,14 +96,17 @@ const Login = () => {
     let loginUser = res?.user;
     dispatch(setUser({ user: loginUser }));
     try {
-      loginUser = await UserService.getCurrentUser();
-      dispatch(setUser({ user: loginUser}));
+      const currentUser = await UserService.getCurrentUser();
+      if (isValidUserResponse(currentUser)) {
+        loginUser = currentUser;
+        dispatch(setUser({ user: loginUser}));
+      }
     } catch {
     }
     setError("");
 
-    if (loginUser?.role === "admin") navigate("/admin/dashboard");
-    else if (loginUser?.isHod === true) navigate("/professor/dashboard");
+    if (isAdminUser(loginUser)) navigate("/admin/dashboard");
+    else if (isHodProfessor(loginUser)) navigate("/professor/dashboard");
     else {
       toast.error("Access denied");
     }
