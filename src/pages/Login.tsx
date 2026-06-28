@@ -81,8 +81,6 @@ const Login = () => {
       setLoading(false);
       return;
     }
-
-    // Block plain professors (only HODs and admins can log in)
     if (res?.user?.role === "proff" && !res?.user?.isHod) {
       toast.error("Access denied — only HOD professors can log in");
       setLoading(false);
@@ -95,7 +93,6 @@ const Login = () => {
       loginUser = await UserService.getCurrentUser();
       dispatch(setUser({ user: loginUser}));
     } catch {
-      // Keep the login response in store if the follow-up profile refresh fails.
     }
     setError("");
 
