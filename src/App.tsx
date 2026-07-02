@@ -36,6 +36,9 @@ const Faculty = lazy(() => import("./pages/Faculty"));
 const Classes = lazy(() => import("./pages/Classes"));
 const IntermediateClasses = lazy(() => import("./pages/IntermediateClasses"));
 const BsAdpClasses = lazy(() => import("./pages/BsAdpClasses"));
+const Fee = lazy(() => import("./pages/Fee"));
+const IntermediateFee = lazy(() => import("./pages/IntermediateFee"));
+const BsAdpFee = lazy(() => import("./pages/BsAdpFee"));
 const ProfessorDashboard = lazy(() => import("./pages/ProfessorDashboard"));
 const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
 const HodClasses = lazy(() => import("./pages/HodClasses"));
@@ -86,6 +89,9 @@ const App = () => (
                 <Route path="classes" element={<Classes />} />
                 <Route path="classes/intermediate" element={<IntermediateClasses />} />
                 <Route path="classes/bs-adp" element={<BsAdpClasses />} />
+                <Route path="fee" element={<Fee />} />
+                <Route path="fee/intermediate" element={<IntermediateFee />} />
+                <Route path="fee/bs-adp" element={<BsAdpFee />} />
               </Route>
               <Route path="/professor" element={<ProfessorLayout />}>
                 <Route index element={<Navigate to="dashboard" replace />} />

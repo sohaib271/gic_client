@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, CalendarCheck, BookOpen, Trophy, Wallet, GraduationCap, LogOut, X, ChevronDown, School } from "lucide-react";
+import { LayoutDashboard, Users, CalendarCheck, BookOpen, Trophy, Wallet, GraduationCap, LogOut, X, ChevronDown, School, Receipt } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AuthService from "@/services/authService";
@@ -33,6 +33,15 @@ const navItems: NavItem[] = [
     children: [
       { to: "/admin/classes/intermediate", label: "Intermediate" },
       { to: "/admin/classes/bs-adp", label: "BS / ADP" },
+    ],
+  },
+  {
+    to: "/admin/fee",
+    icon: Receipt,
+    label: "Fee",
+    children: [
+      { to: "/admin/fee/intermediate", label: "Intermediate" },
+      { to: "/admin/fee/bs-adp", label: "BS / ADP" },
     ],
   },
   // {
@@ -155,7 +164,10 @@ const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
               {item.children ? (
                 <div>
                   <button
-                    onClick={() => toggleExpand(item.to)}
+                    onClick={() => {
+                      navigate(item.to);
+                      toggleExpand(item.to);
+                    }}
                     className={`sidebar-link w-full justify-between ${
                       location.pathname.startsWith(item.to) ? "active" : ""
                     }`}

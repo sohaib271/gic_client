@@ -16,6 +16,10 @@ import {
   ChevronDown,
   Info,
   RotateCcw,
+  DollarSign,
+  Receipt,
+  Eye,
+  Loader2,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -24,6 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePagination } from "@/hooks/usePagination";
 import PaginationControls from "@/components/PaginationControls";
 import ClassService from "@/services/classService";
+import FeeService from "@/services/feeService";
 
 type Tab = "teachers" | "students";
 
@@ -197,6 +202,80 @@ export default function ClassDetailView({
   const [unstrikingStudentId, setUnstrikingStudentId] = useState<string | null>(
     null,
   );
+
+  // ── Fee Modal State ──────────────────────────────────────────────────────
+  const [selectedStudentForFee, setSelectedStudentForFee] = useState<any | null>(null);
+  const [feeRecords, setFeeRecords] = useState<any[]>([]);
+  const [feeLoading, setFeeLoading] = useState(false);
+  const [updatingFee, setUpdatingFee] = useState<string | null>(null);
+
+  // Fetch fee records when students tab is active
+  useQuery({
+    queryKey: ["class-fee-records", classData?._id, activeTab],
+    queryFn: async () => {
+      if (activeTab !== "students") return null;
+      setFeeLoading(true);
+      try {
+        const result = await FeeService.getFeeRecords({ 
+          classId: classData._id,
+          category: classData?.category || "intermediate"
+        });
+        if (result?.records) {
+          setFeeRecords(result.records);
+        } else if (Array.isArray(result)) {
+          setFeeRecords(result);
+        }
+        return result;
+      } catch (err) {
+        console.error("Failed to fetch fee records:", err);
+      } finally {
+        setFeeLoading(false);
+      }
+    },
+    enabled: activeTab === "students" && !!classData?._id,
+    staleTime: 30000,
+  });
+
+  const openFeeModal = async (student: any) => {
+    setSelectedStudentForFee(student);
+  };
+
+  const getStudentFeeStatus = (studentId: string) => {
+    const record = feeRecords.find((r) => {
+      const sid = typeof r.studentId === "object" ? r.studentId?._id : r.studentId;
+      return sid?.toString() === studentId.toString();
+    });
+    return record?.status || "pending";
+  };
+
+  const getStudentFeeRecord = (studentId: string) => {
+    return feeRecords.find((r) => {
+      const sid = typeof r.studentId === "object" ? r.studentId?._id : r.studentId;
+      return sid?.toString() === studentId.toString();
+    });
+  };
+
+  const updateFeeStatus = async (recordId: string, status: string) => {
+    setUpdatingFee(recordId);
+    try {
+      const res = await FeeService.updateFeeStatus(recordId, { 
+        status: status as "paid" | "pending" | "waived",
+        paidDate: status === "paid" ? new Date().toISOString() : undefined
+      });
+      if (res.statusCode >= 400 || res.error) {
+        toast.error(res.message || "Failed to update fee");
+        return;
+      }
+      setFeeRecords((prev) =>
+        prev.map((r) => (r._id === recordId ? { ...r, status } : r))
+      );
+      toast.success("Fee status updated");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setUpdatingFee(null);
+    }
+  };
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const assignedTeachers: AssignedTeacher[] = classData?.assignes ?? [];
@@ -950,7 +1029,7 @@ export default function ClassDetailView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-secondary/50">
-                    {["#", "Student ID", "Name", "Status", "Action"].map((h) => (
+                    {["#", "Student ID", "Name", "Status", "Fee", "Action"].map((h) => (
                       <th
                         key={h}
                         className={`px-4 py-3 font-display font-semibold text-foreground ${
@@ -1000,6 +1079,40 @@ export default function ClassDetailView({
                             <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
                               <Check className="h-3 w-3" /> Active
                             </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {!isStruckOff && (
+                            <div className="flex items-center gap-2">
+                              {feeLoading ? (
+                                <span className="text-xs text-muted-foreground">...</span>
+                              ) : (
+                                <>
+                                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                                    getStudentFeeStatus(sid) === "paid" 
+                                      ? "bg-green-100 text-green-800" 
+                                      : getStudentFeeStatus(sid) === "waived"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-yellow-100 text-yellow-800"
+                                  }`}>
+                                    <DollarSign className="h-3 w-3 mr-1" />
+                                    {getStudentFeeStatus(sid) === "paid" 
+                                      ? "Paid" 
+                                      : getStudentFeeStatus(sid) === "waived"
+                                      ? "Waived"
+                                      : "Pending"}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => openFeeModal(s)}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-secondary transition-colors"
+                                    title="View/Update Fee"
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -1540,6 +1653,172 @@ export default function ClassDetailView({
                       }`}
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* FEE DETAIL MODAL                                               */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {selectedStudentForFee && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setSelectedStudentForFee(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex flex-col w-full max-w-lg rounded-2xl border border-border bg-card shadow-modal max-h-[85vh]"
+            >
+              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border shrink-0">
+                <div>
+                  <h2 className="font-display text-base font-bold text-foreground">
+                    Fee Details
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {selectedStudentForFee?.name} {selectedStudentForFee?.lastName ?? ""} · {selectedStudentForFee?.specialId}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedStudentForFee(null)}
+                  className="rounded-lg p-1 hover:bg-secondary transition-colors"
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+                {/* Current Fee Status */}
+                {(() => {
+                  const feeRecord = getStudentFeeRecord(resolveStudentId(selectedStudentForFee));
+                  if (!feeRecord) {
+                    return (
+                      <div className="rounded-lg border border-border bg-secondary/30 p-4 text-center">
+                        <Receipt className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">No fee record found</p>
+                        <p className="text-xs text-muted-foreground mt-1">Generate fee from the Fee Management page</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="rounded-lg border border-border bg-secondary/30 p-3">
+                          <p className="text-xs text-muted-foreground">Amount</p>
+                          <p className="text-lg font-bold text-foreground">
+                            PKR {feeRecord.amount?.toLocaleString() || "—"}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-border bg-secondary/30 p-3">
+                          <p className="text-xs text-muted-foreground">Status</p>
+                          <span className={`inline-flex items-center gap-1 mt-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                            feeRecord.status === "paid" 
+                              ? "bg-green-100 text-green-800" 
+                              : feeRecord.status === "waived"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}>
+                            {feeRecord.status === "paid" ? "Paid" : feeRecord.status === "waived" ? "Waived" : "Pending"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Month</span>
+                          <span className="text-foreground capitalize">{feeRecord.month}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Year</span>
+                          <span className="text-foreground">{feeRecord.year}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Due Date</span>
+                          <span className="text-foreground">{feeRecord.dueDate ? new Date(feeRecord.dueDate).toLocaleDateString("en-GB") : "—"}</span>
+                        </div>
+                        {feeRecord.description && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Description</span>
+                            <span className="text-foreground">{feeRecord.description}</span>
+                          </div>
+                        )}
+                        {feeRecord.paidDate && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Paid Date</span>
+                            <span className="text-green-700">{new Date(feeRecord.paidDate).toLocaleDateString("en-GB")}</span>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {(() => {
+                const feeRecord = getStudentFeeRecord(resolveStudentId(selectedStudentForFee));
+                return (
+                  <div className="flex gap-3 px-6 py-4 border-t border-border shrink-0">
+                    {feeRecord && (
+                      <>
+                        {feeRecord.status !== "paid" && (
+                          <button
+                            onClick={() => updateFeeStatus(feeRecord._id, "paid")}
+                            disabled={updatingFee === feeRecord._id}
+                            className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {updatingFee === feeRecord._id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
+                            Mark as Paid
+                          </button>
+                        )}
+                        {feeRecord.status !== "waived" && (
+                          <button
+                            onClick={() => updateFeeStatus(feeRecord._id, "waived")}
+                            disabled={updatingFee === feeRecord._id}
+                            className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {updatingFee === feeRecord._id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Receipt className="h-4 w-4" />
+                            )}
+                            Mark as Waived
+                          </button>
+                        )}
+                        {feeRecord.status !== "pending" && (
+                          <button
+                            onClick={() => updateFeeStatus(feeRecord._id, "pending")}
+                            disabled={updatingFee === feeRecord._id}
+                            className="flex-1 rounded-lg bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {updatingFee === feeRecord._id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <DollarSign className="h-4 w-4" />
+                            )}
+                            Mark as Pending
+                          </button>
+                        )}
+                      </>
+                    )}
+                    <button
+                      onClick={() => setSelectedStudentForFee(null)}
+                      className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                );
+              })()}
             </motion.div>
           </motion.div>
         )}
