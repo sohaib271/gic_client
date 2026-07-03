@@ -84,7 +84,7 @@ class FeeService {
     return res.json();
   }
 
-  // Get student fee summary
+  // Get student fee summary (same as mobile)
   static async getStudentFeeSummary(studentId: string, semester?: string) {
     const query = new URLSearchParams();
     if (semester) query.set("semester", semester);
@@ -94,7 +94,24 @@ class FeeService {
       headers: this.authHeaders(),
       credentials: "include",
     });
-    return res.json();
+    const data = await res.json();
+    
+    // Transform records array to summary format (same as mobile endpoint)
+    if (data?.records) {
+      const records = data.records;
+      return {
+        totalRecords: data.pagination?.total || records.length,
+        totalAmount: records.reduce((sum: number, r: any) => sum + r.amount, 0),
+        paidAmount: records.filter((r: any) => r.status === 'paid').reduce((sum: number, r: any) => sum + r.amount, 0),
+        pendingAmount: records.filter((r: any) => r.status === 'pending').reduce((sum: number, r: any) => sum + r.amount, 0),
+        pending: records.filter((r: any) => r.status === 'pending'),
+        paid: records.filter((r: any) => r.status === 'paid'),
+        waived: records.filter((r: any) => r.status === 'waived'),
+        category: records[0]?.category,
+        semester: records[0]?.semester,
+      };
+    }
+    return data;
   }
 
   // Delete fee record

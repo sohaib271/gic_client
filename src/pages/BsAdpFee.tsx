@@ -131,57 +131,20 @@ const BsAdpFee = () => {
     setTimeout(async () => {
       console.log("🔵 [openFeeModal] Fetching fee records...");
       try {
-        // Get student's own program and semester from classStudents data
-        const studentData = classStudents.find((s: any) => resolveId(s) === studentId);
-        const category = (studentData?.category as "bs" | "adp") || selectedClassData?.category || "bs";
-        const semester = studentData?.class || selectedSemester || undefined;
+        // Use same endpoint as mobile: /fee/student/:studentId/summary
+        const result = await FeeService.getStudentFeeSummary(studentId);
+        console.log("📦 [openFeeModal] API result:", result);
         
-      // Try to fetch records for this specific student first
-      let result = await FeeService.getFeeRecords({
-        studentId,
-        classId: selectedClassData?._id,
-        category,
-        semester,
-      });
-      
-      let allRecords: any[] = result?.records ?? (Array.isArray(result) ? result : []);
-      console.log("📦 [openFeeModal] First fetch result:", allRecords.length, "records");
-      if (allRecords.length > 0) {
-        console.log("📦 [openFeeModal] First record studentId:", allRecords[0].studentId);
-      }
+        // Transform to records array format for the modal
+        const pending = result?.pending || [];
+        const paid = result?.paid || [];
+        const waived = result?.waived || [];
+        const allRecords = [...pending, ...paid, ...waived];
         
-        // If no records found with studentId filter, try fetching ALL records for this class
-        if (allRecords.length === 0 && selectedClassData?._id) {
-          console.log("⚠️ [openFeeModal] No records with studentId filter, fetching all class records...");
-          result = await FeeService.getFeeRecords({
-            classId: selectedClassData._id,
-            category,
-            semester,
-          });
-          allRecords = result?.records ?? (Array.isArray(result) ? result : []);
-        }
-        
-        console.log("📦 [openFeeModal] API result total records:", allRecords.length);
-        
-        // DEBUG: Log each record's studentId
-        allRecords.forEach((r: any, i: number) => {
-          const sid = typeof r.studentId === "object" ? r.studentId?._id : r.studentId;
-          console.log(`📋 Record ${i}: studentId =`, r.studentId);
-          console.log(`📋 Record ${i}: sid (extracted) =`, sid);
-          console.log(`📋 Record ${i}: querying for studentId =`, studentId);
-          console.log(`📋 Record ${i}: comparison =`, sid?.toString() === studentId.toString());
-        });
-        
-        // Filter records for this specific student (handle both string and ObjectId comparison)
-        const filtered = allRecords.filter((r: any) => {
-          const sid = typeof r.studentId === "object" ? r.studentId?._id : r.studentId;
-          return sid?.toString() === studentId.toString();
-        });
-        
-        console.log("✅ [openFeeModal] Filtered records for this student:", filtered.length);
+        console.log("✅ [openFeeModal] Total records for student:", allRecords.length);
         
         // Store in per-student map
-        setStudentFeeRecordsMap((prev) => ({ ...prev, [studentId]: filtered }));
+        setStudentFeeRecordsMap((prev) => ({ ...prev, [studentId]: allRecords }));
       } catch (err) {
         console.error("❌ [openFeeModal] Failed to fetch student fee records:", err);
         toast.error("Failed to load fee records");

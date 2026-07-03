@@ -6,6 +6,15 @@ import AuthService from "@/services/authService";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { clearUser } from "@/store/userSlice";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface NavItem {
   to: string;
@@ -95,19 +104,23 @@ const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
   const [expandedItems, setExpandedItems] = useState<string[]>(
     navItems.filter((item) => item.children && location.pathname.startsWith(item.to)).map((item) => item.to)
   );
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const toggleExpand = (to: string) => {
     setExpandedItems((prev) => (prev.includes(to) ? prev.filter((i) => i !== to) : [...prev, to]));
   };
 
-  async function signOut(){
-    const res=await AuthService.logout(user?._id);
-    if(res?.message !== "Logged Out") return toast.error("Invalid user");
-
+  async function handleLogout() {
+    setLoggingOut(true);
+    const res = await AuthService.logout(user?._id);
+    setLoggingOut(false);
+    setLogoutOpen(false);
+    if (res?.message !== "Logged Out") return toast.error("Invalid user");
     toast.success(res?.message);
-    dispatch(clearUser())
+    dispatch(clearUser());
     localStorage.removeItem("persist:root");
-    navigate("/")
+    navigate("/");
   }
 
   return (
@@ -227,12 +240,31 @@ const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
         </nav>
 
         <div className="p-3">
-          <button onClick={()=>signOut()} className="sidebar-link text-destructive cursor-pointer">
+          <button onClick={() => setLogoutOpen(true)} className="sidebar-link text-destructive cursor-pointer">
             <LogOut className="h-5 w-5" />
             Logout
           </button>
         </div>
       </aside>
+
+      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Logout</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to logout from your account?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setLogoutOpen(false)} disabled={loggingOut}>
+              No, Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleLogout} disabled={loggingOut}>
+              {loggingOut ? "Logging out..." : "Yes, Logout"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

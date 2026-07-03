@@ -4,7 +4,18 @@ import {
   Users, BookOpen, CalendarCheck, TrendingUp, GraduationCap,
   ChevronLeft, ChevronRight, X, Search,
   Clock, Check, Ban, FileText, Download, Filter, QrCode, RefreshCw,
+  Building2, Plus, Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useUsers } from "@/hooks/useUsers";
 import { useTeacherAttendanceHistory } from "@/hooks/useTeacherAttendance";
 import { UserCircle, History, ArrowLeft } from "lucide-react";
@@ -12,7 +23,7 @@ import { useClasses } from "@/hooks/useClasses";
 import { useQuery } from "@tanstack/react-query";
 import UserService from "@/services/userService";
 import ClassService from "@/services/classService";
-import { toast } from "sonner";
+import DepartmentService from "@/services/departmentService";
 import TeacherAttendanceService from "@/services/teacherAttendanceService";
 import PaginationControls from "@/components/PaginationControls";
 import { usePagination } from "@/hooks/usePagination";
@@ -34,11 +45,12 @@ const fetchClassAttendance = async (classId: string, date: string) => {
   return res.json();
 };
 
-type DashboardPanel = "students" | "attendance" | "facultyQR" | "faculty" | null;
+type DashboardPanel = "students" | "attendance" | "facultyQR" | "faculty" | "departments" | null;
 
 const Dashboard = () => {
-  const { data: allUsers } = useUsers("");
-  const { data: classes }  = useClasses("");
+  const { data: allUsers, isLoading: usersLoading } = useUsers("");
+  const { data: classes, isLoading: classesLoading }  = useClasses("");
+  const isLoading = usersLoading || classesLoading;
 
   const [activePanel, setActivePanel] = useState<DashboardPanel>(null);
 
@@ -68,6 +80,14 @@ const Dashboard = () => {
 const [facultySearch,       setFacultySearch]       = useState("");
 const [selectedTeacher,     setSelectedTeacher]     = useState<any | null>(null);
 const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
+
+  // ── Departments panel state
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [showAddDepartment, setShowAddDepartment] = useState(false);
+  const [deptName, setDeptName] = useState("");
+  const [deptCode, setDeptCode] = useState("");
+  const [deptCategory, setDeptCategory] = useState<"intermediate" | "bs_adp" | null>(null);
+  const [creatingDept, setCreatingDept] = useState(false);
 
   // ── Derived counts
   const usersList = useMemo(() => Array.isArray(allUsers) ? allUsers : [], [allUsers]);
@@ -122,6 +142,7 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
     { label: "Attendance",     value: "View Report",              icon: CalendarCheck, panel: "attendance" as DashboardPanel },
     { label: "Faculty", value: String(professors.length), icon: GraduationCap, panel: "faculty" as DashboardPanel },
     { label: "Faculty QR",     value: "View QR Code",             icon: QrCode,        panel: "facultyQR"  as DashboardPanel },
+    { label: "Departments", value: String(departments.length), icon: Building2, panel: "departments" as DashboardPanel },
   ];
 
   // ── Generate attendance report
@@ -198,6 +219,57 @@ const facultyPagination = usePagination(filteredProfessors, 10);
     else { setQrDataUrl(null); setQrError(null); setQrCountdown(60); }
   }, [activePanel]);
 
+  // ── Fetch departments when panel opens
+  useEffect(() => {
+    if (activePanel === "departments") {
+      fetchDepartments();
+    }
+  }, [activePanel]);
+
+  // ── Fetch departments on mount
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await DepartmentService.getAllDepartments();
+      setDepartments(Array.isArray(res) ? res : []);
+    } catch (error) {
+      console.error("Failed to fetch departments:", error);
+      setDepartments([]);
+    }
+  };
+
+  const handleCreateDepartment = async () => {
+    if (!deptName.trim()) {
+      toast.error("Department name is required");
+      return;
+    }
+    setCreatingDept(true);
+    try {
+      const result = await DepartmentService.createDepartment({
+        name: deptName.trim(),
+        code: deptCode.trim() || undefined,
+        category: deptCategory,
+      });
+      if (result.statusCode >= 400 || result.error) {
+        toast.error(result.message || "Failed to create department");
+      } else {
+        toast.success(result.message || "Department created successfully");
+        setShowAddDepartment(false);
+        setDeptName("");
+        setDeptCode("");
+        setDeptCategory(null);
+        fetchDepartments();
+      }
+    } catch (error) {
+      toast.error("Network error");
+    } finally {
+      setCreatingDept(false);
+    }
+  };
+
   // ── Countdown auto-refresh
   useEffect(() => {
     if (!qrDataUrl) return;
@@ -216,50 +288,66 @@ const facultyPagination = usePagination(filteredProfessors, 10);
   return (
     <div className="space-y-6">
       {/* ── Stats Cards ── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {stats.map((stat, i) => (
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-5">
+        {isLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm animate-pulse">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="h-3 w-24 bg-gray-200 rounded" />
+                  <div className="h-8 w-8 bg-gray-200 rounded-lg" />
+                </div>
+                <div className="h-8 w-16 bg-gray-200 rounded mt-2" />
+              </div>
+            ))
+          : stats.map((stat, i) => (
           <motion.div
             key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
+            transition={{ delay: i * 0.06 }}
             onClick={() => {
-  if (stat.panel) {
-    if (activePanel === stat.panel) {
-      setActivePanel(null);
-    } else {
-      setActivePanel(stat.panel);
-      // ✅ Reset faculty state when switching away
-      if (stat.panel !== "faculty") {
-        setSelectedTeacher(null);
-        setShowTeacherHistory(false);
-        setFacultySearch("");
-      }
-    }
-  }
-}}
-            className={`group rounded-xl border border-border bg-card p-5 shadow-card transition-all hover:shadow-elevated ${
-              stat.panel ? "cursor-pointer hover:-translate-y-0.5" : ""
-            } ${activePanel === stat.panel && stat.panel ? "ring-2 ring-primary/40" : ""}`}
+              if (stat.panel) {
+                if (activePanel === stat.panel) {
+                  setActivePanel(null);
+                } else {
+                  setActivePanel(stat.panel);
+                  if (stat.panel !== "faculty") {
+                    setSelectedTeacher(null);
+                    setShowTeacherHistory(false);
+                    setFacultySearch("");
+                  }
+                }
+              }
+            }}
+            className={`group p-5 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 ${
+              stat.panel ? "cursor-pointer" : ""
+            } ${activePanel === stat.panel && stat.panel ? "ring-2 ring-offset-2 ring-primary" : ""}`}
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="mt-1 font-display text-2xl font-bold text-foreground">{stat.value}</p>
-              </div>
-              <div className={`rounded-lg p-2.5 transition-colors ${
-                activePanel === stat.panel && stat.panel
-                  ? "bg-primary/20"
-                  : "bg-primary/10 group-hover:bg-primary/20"
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{stat.label}</span>
+              <div className={`p-2 rounded-lg transition-colors ${
+                stat.panel === "students" ? "bg-blue-50" :
+                stat.panel === "attendance" ? "bg-emerald-50" :
+                stat.panel === "faculty" ? "bg-amber-50" :
+                stat.panel === "facultyQR" ? "bg-sky-50" :
+                stat.panel === "departments" ? "bg-violet-50" :
+                "bg-gray-50"
               }`}>
-                <stat.icon className="h-5 w-5 text-primary" />
+                <stat.icon className={`h-4 w-4 ${
+                  stat.panel === "students" ? "text-blue-600" :
+                  stat.panel === "attendance" ? "text-emerald-600" :
+                  stat.panel === "faculty" ? "text-amber-600" :
+                  stat.panel === "facultyQR" ? "text-sky-600" :
+                  stat.panel === "departments" ? "text-violet-600" :
+                  "text-gray-600"
+                }`} />
               </div>
             </div>
+            <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
             {stat.panel && (
-              <div className="mt-3 flex items-center gap-1 text-xs font-medium text-primary">
-                <TrendingUp className="h-3 w-3" />
-                Click to {activePanel === stat.panel ? "close" : "view details"}
-              </div>
+              <p className="text-xs text-amber-600 font-medium mt-2 group-hover:text-amber-700 transition-colors">
+                {activePanel === stat.panel ? "▼ Active" : "Click to view →"}
+              </p>
             )}
           </motion.div>
         ))}
@@ -964,37 +1052,223 @@ const facultyPagination = usePagination(filteredProfessors, 10);
         )}
       </AnimatePresence>
 
+      {/* ══════════ DEPARTMENTS PANEL ══════════ */}
+      <AnimatePresence>
+        {activePanel === "departments" && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-lg font-bold text-foreground">Departments</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowAddDepartment(true)}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Department
+                </button>
+                <button
+                  onClick={() => setActivePanel(null)}
+                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Departments List */}
+            <div className="divide-y divide-border max-h-96 overflow-y-auto">
+              {departments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                  <Building2 className="h-10 w-10 text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">No departments found.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Click "Add Department" to create one.</p>
+                </div>
+              ) : (
+                departments.map((dept: any) => (
+                  <div key={dept._id} className="flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{dept.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {dept.code && (
+                          <span className="text-xs text-muted-foreground">Code: {dept.code}</span>
+                        )}
+                        {dept.category && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
+                            {dept.category === "bs_adp" ? "BS/ADP" : dept.category}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(dept.createdAt).toLocaleDateString("en-GB")}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Add Department Modal ── */}
+      <AnimatePresence>
+        {showAddDepartment && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => !creatingDept && setShowAddDepartment(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md rounded-xl border border-border bg-card shadow-elevated overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  <h3 className="font-display text-lg font-bold text-foreground">Add Department</h3>
+                </div>
+                <button
+                  onClick={() => setShowAddDepartment(false)}
+                  disabled={creatingDept}
+                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-5 space-y-4">
+                {/* Department Name */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Department Name <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={deptName}
+                    onChange={(e) => setDeptName(e.target.value)}
+                    placeholder="e.g., Computer Science"
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+
+                {/* Department Code */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Department Code <span className="text-xs text-muted-foreground">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={deptCode}
+                    onChange={(e) => setDeptCode(e.target.value)}
+                    placeholder="e.g., CS"
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Category <span className="text-xs text-muted-foreground">(optional)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: null, label: "None" },
+                      { value: "intermediate", label: "Intermediate" },
+                      { value: "bs_adp", label: "BS/ADP" },
+                    ].map((opt) => (
+                      <button
+                        key={String(opt.value)}
+                        type="button"
+                        onClick={() => setDeptCategory(opt.value)}
+                        className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                          deptCategory === opt.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-background border border-border text-muted-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-border bg-secondary/30">
+                <button
+                  onClick={() => setShowAddDepartment(false)}
+                  disabled={creatingDept}
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateDepartment}
+                  disabled={creatingDept || !deptName.trim()}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {creatingDept ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      Create
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Quick Overview ── */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-        className="rounded-xl border border-border bg-card p-6 shadow-card">
-        <div className="flex items-center gap-3 mb-4">
-          <GraduationCap className="h-5 w-5 text-primary" />
-          <h2 className="font-display text-lg font-bold text-foreground">Quick Overview</h2>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-lg bg-secondary p-4">
-            <p className="text-sm text-muted-foreground">Intermediate</p>
-            <p className="mt-1 font-display text-lg font-bold text-foreground">
+      {!isLoading && (
+        <div className="grid grid-cols-3 gap-5">
+          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Intermediate</span>
+            <p className="text-3xl font-semibold text-gray-900 mt-1">
               {students.filter((s: any) => s.category === "intermediate").length}
             </p>
-            <p className="text-xs text-muted-foreground">Students</p>
+            <p className="text-xs text-gray-400 mt-1">Students</p>
           </div>
-          <div className="rounded-lg bg-secondary p-4">
-            <p className="text-sm text-muted-foreground">BS Students</p>
-            <p className="mt-1 font-display text-lg font-bold text-foreground">
+          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">BS</span>
+            <p className="text-3xl font-semibold text-gray-900 mt-1">
               {students.filter((s: any) => s.category === "bs").length}
             </p>
-            <p className="text-xs text-muted-foreground">Students</p>
+            <p className="text-xs text-gray-400 mt-1">Students</p>
           </div>
-          <div className="rounded-lg bg-secondary p-4">
-            <p className="text-sm text-muted-foreground">ADP Students</p>
-            <p className="mt-1 font-display text-lg font-bold text-foreground">
+          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">ADP</span>
+            <p className="text-3xl font-semibold text-gray-900 mt-1">
               {students.filter((s: any) => s.category === "adp").length}
             </p>
-            <p className="text-xs text-muted-foreground">Students</p>
+            <p className="text-xs text-gray-400 mt-1">Students</p>
           </div>
         </div>
-      </motion.div>
+      )}
+
+
     </div>
   );
 };
