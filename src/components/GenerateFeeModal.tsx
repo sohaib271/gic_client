@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, DollarSign, Calendar, FileText, Loader2, BookOpen, Building2, Check, Plus, Trash2, Tag } from "lucide-react";
 import { toast } from "sonner";
@@ -80,9 +80,10 @@ export default function GenerateFeeModal({
   singleStudentMode = false,
 }: GenerateFeeModalProps) {
   // In single-student mode, pre-select the only student
+  // Otherwise, auto-select all students (since UI selection is removed)
   const isSingleStudent = singleStudentMode && students.length === 1;
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(
-    isSingleStudent ? new Set(students.map((s) => s._id)) : new Set()
+    isSingleStudent ? new Set(students.map((s) => s._id)) : new Set(students.map((s) => s._id))
   );
   const [selectAll, setSelectAll] = useState(false);
   const [month, setMonth] = useState(
@@ -112,6 +113,48 @@ export default function GenerateFeeModal({
   const [customFields, setCustomFields] = useState<CustomField[]>([
     { label: "", value: "" }
   ]);
+
+  // Saved custom field labels (from localStorage)
+  const [savedCustomLabels, setSavedCustomLabels] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState<number | null>(null);
+
+  // Load saved custom labels from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("fee_custom_labels");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setSavedCustomLabels(parsed);
+        }
+      } catch (e) {
+        console.error("Failed to parse saved custom labels:", e);
+      }
+    }
+  }, []);
+
+  // Save custom labels to localStorage
+  const saveCustomLabel = (label: string) => {
+    if (!label.trim()) return;
+    const trimmed = label.trim();
+    if (!savedCustomLabels.includes(trimmed)) {
+      const updated = [trimmed, ...savedCustomLabels].slice(0, 10); // Keep last 10
+      setSavedCustomLabels(updated);
+      localStorage.setItem("fee_custom_labels", JSON.stringify(updated));
+    }
+  };
+
+  // Calculate total: main amount + all custom field values
+  const calculateTotal = () => {
+    const mainAmount = parseFloat(amount) || 0;
+    const customTotal = customFields.reduce((sum, field) => {
+      const fieldValue = parseFloat(field.value) || 0;
+      return sum + fieldValue;
+    }, 0);
+    return mainAmount + customTotal;
+  };
+
+  const totalAmount = calculateTotal();
 
   const isIntermediate = category === "intermediate";
 
@@ -147,8 +190,12 @@ export default function GenerateFeeModal({
   };
 
   const handleSubmit = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error("Please enter a valid amount");
+    // Check if either main amount or custom fields have values
+    const hasMainAmount = amount && parseFloat(amount) > 0;
+    const hasCustomAmounts = customFields.some(f => f.label.trim() !== "" && parseFloat(f.value) > 0);
+    
+    if (!hasMainAmount && !hasCustomAmounts) {
+      toast.error("Please enter an amount (main amount or custom fields)");
       return;
     }
     if (!dueDate) {
@@ -170,16 +217,19 @@ export default function GenerateFeeModal({
     // Filter out empty custom fields
     const filteredCustomFields = customFields.filter(f => f.label.trim() !== "");
 
+    // Calculate total: main amount + all custom field values
+    const finalTotalAmount = calculateTotal();
+
     setIsSubmitting(true);
     try {
-      // Call the API directly
+      // Call the API directly with TOTAL amount (main + custom fields)
       const result = await FeeService.generateFee({
         studentIds: Array.from(selectedStudents),
         classId: payloadClassId || "",
         month,
         year: currentYear,
         dueDate,
-        amount: parseFloat(amount),
+        amount: finalTotalAmount, // Use total instead of just main amount
         description,
         category,
         semester: payloadSemester,
@@ -188,6 +238,11 @@ export default function GenerateFeeModal({
 
       if (result.message || result._id) {
         toast.success(`Fee generated for ${selectedStudents.size} student(s)`);
+        
+        // Save custom field labels to localStorage
+        filteredCustomFields.forEach(field => {
+          saveCustomLabel(field.label);
+        });
       } else {
         toast.error(result.message || "Failed to generate fee");
         return;
@@ -199,7 +254,7 @@ export default function GenerateFeeModal({
           studentIds: Array.from(selectedStudents),
           month,
           dueDate,
-          amount: parseFloat(amount),
+          amount: finalTotalAmount, // Use total instead of just main amount
           description,
           category,
           semester: payloadSemester,
@@ -258,7 +313,7 @@ export default function GenerateFeeModal({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 [&>div:last-child]:overflow-visible">
               {/* Month & Due Date Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -351,23 +406,23 @@ export default function GenerateFeeModal({
                 </div>
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  Description (Optional)
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g. Monthly tuition fee for January 2026"
-                  rows={2}
-                  className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
+                {/* Description */}
+                <div>
+                  <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    Description (Optional)
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="e.g. Monthly tuition fee for January 2026"
+                    rows={2}
+                    className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
 
               {/* Custom Fields */}
-              <div>
+              <div className="overflow-visible">
                 <div className="mb-2 flex items-center justify-between">
                   <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                     <Tag className="h-4 w-4 text-muted-foreground" />
@@ -382,20 +437,58 @@ export default function GenerateFeeModal({
                     Add Field
                   </button>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 overflow-visible">
                   {customFields.map((field, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={field.label}
-                        onChange={(e) => {
-                          const newFields = [...customFields];
-                          newFields[index].label = e.target.value;
-                          setCustomFields(newFields);
-                        }}
-                        placeholder="Field name (e.g. Transport Fee)"
-                        className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
+                    <div key={index} className="relative flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={field.label}
+                          onChange={(e) => {
+                            const newFields = [...customFields];
+                            newFields[index].label = e.target.value;
+                            setCustomFields(newFields);
+                            setShowSuggestions(e.target.value ? index : null);
+                          }}
+                          onFocus={() => {
+                            if (field.label) setShowSuggestions(index);
+                          }}
+                          onBlur={() => {
+                            // Delay to allow clicking on suggestion
+                            setTimeout(() => setShowSuggestions(null), 200);
+                          }}
+                          placeholder="Field name (e.g. Transport Fee)"
+                          className="w-full rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        {/* Saved indicator */}
+                        {savedCustomLabels.includes(field.label.trim()) && field.label && (
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-primary">★</span>
+                        )}
+                        {/* Suggestions dropdown */}
+                        {showSuggestions === index && savedCustomLabels.length > 0 && (
+                          <div className="absolute left-0 top-full z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+                            {savedCustomLabels
+                              .filter(label => label.toLowerCase().includes(field.label.toLowerCase()))
+                              .map((label, i) => (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    const newFields = [...customFields];
+                                    newFields[index].label = label;
+                                    setCustomFields(newFields);
+                                    setShowSuggestions(null);
+                                  }}
+                                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-secondary"
+                                >
+                                  <span>{label}</span>
+                                  <span className="text-xs text-muted-foreground">★ saved</span>
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
                       <input
                         type="text"
                         value={field.value}
@@ -404,7 +497,7 @@ export default function GenerateFeeModal({
                           newFields[index].value = e.target.value;
                           setCustomFields(newFields);
                         }}
-                        placeholder="Value (e.g. 500)"
+                        placeholder="Value"
                         className="w-32 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                       {customFields.length > 1 && (
@@ -424,62 +517,30 @@ export default function GenerateFeeModal({
                 </p>
               </div>
 
-              {/* Student Selection */}
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="text-sm font-medium text-foreground">
-                    {isSingleStudent ? "Student" : "Select Students"}
-                  </label>
-                  {!isSingleStudent && (
-                    <button
-                      type="button"
-                      onClick={handleSelectAll}
-                      className="text-xs font-medium text-primary hover:underline"
-                    >
-                      {selectAll ? "Deselect All" : "Select All"}
-                    </button>
-                  )}
+              {/* Total Amount Display */}
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">Total Amount</span>
+                  <span className="text-lg font-bold text-primary">
+                    PKR {totalAmount.toLocaleString()}
+                  </span>
                 </div>
-                <div className={`max-h-48 overflow-y-auto rounded-lg border border-input bg-background ${isSingleStudent ? 'bg-secondary/30' : ''}`}>
-                  {students.length === 0 ? (
-                    <p className="p-4 text-center text-sm text-muted-foreground">
-                      No students in this class
-                    </p>
-                  ) : (
-                    students.map((student) => (
-                      <label
-                        key={student._id}
-                        className={`flex items-center gap-3 border-b border-input px-3 py-2.5 last:border-0 ${isSingleStudent ? '' : 'cursor-pointer hover:bg-secondary/50'}`}
-                      >
-                        {isSingleStudent ? (
-                          <div className="flex h-4 w-4 items-center justify-center rounded border-primary bg-primary">
-                            <Check className="h-3 w-3 text-primary-foreground" />
-                          </div>
-                        ) : (
-                          <input
-                            type="checkbox"
-                            checked={selectedStudents.has(student._id)}
-                            onChange={() => handleSelectStudent(student._id)}
-                            className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
-                          />
-                        )}
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">
-                            {student.name} {student.lastName || ""}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {student.specialId}
-                          </p>
+                {customFields.some(f => f.label.trim() !== "" && parseFloat(f.value) > 0) && (
+                  <div className="mt-2 space-y-1 border-t border-primary/20 pt-2">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Main Amount:</span>
+                      <span>PKR {(parseFloat(amount) || 0).toLocaleString()}</span>
+                    </div>
+                    {customFields
+                      .filter(f => f.label.trim() !== "" && parseFloat(f.value) > 0)
+                      .map((field, idx) => (
+                        <div key={idx} className="flex justify-between text-xs text-muted-foreground">
+                          <span>{field.label}:</span>
+                          <span>PKR {parseFloat(field.value).toLocaleString()}</span>
                         </div>
-                      </label>
-                    ))
-                  )}
-                </div>
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  {isSingleStudent
-                    ? `Generating fee for ${students[0]?.name || "student"}`
-                    : `${selectedStudents.size} of ${students.length} students selected`}
-                </p>
+                      ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -493,7 +554,7 @@ export default function GenerateFeeModal({
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting || selectedStudents.size === 0 || !amount}
+                disabled={isSubmitting || (!amount && !customFields.some(f => f.label.trim() !== ""))}
                 className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting ? (
@@ -502,7 +563,7 @@ export default function GenerateFeeModal({
                     Generating...
                   </span>
                 ) : (
-                  `Generate Fee (${selectedStudents.size})`
+                  `Generate Fee`
                 )}
               </button>
             </div>

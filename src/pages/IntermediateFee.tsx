@@ -62,8 +62,8 @@ const IntermediateFee = () => {
 
   // Paid status for each student (studentId -> boolean)
   const [paidStatus, setPaidStatus] = useState<Record<string, boolean>>({});
-  // Manual override tracking to prevent sync overwriting user toggle
-  const paidStatusOverride = useRef<Record<string, boolean>>({});
+  // Current semester fee records for each student (for quick lookup)
+  const [currentSemesterFees, setCurrentSemesterFees] = useState<Record<string, any>>({});
 
   // Semester selection for each student
   const [studentSemesters, setStudentSemesters] = useState<Record<string, string>>({});
@@ -80,6 +80,8 @@ const IntermediateFee = () => {
 
   // Fee Modal State - per-student tracking using student ID
   const [openFeeModalStudentId, setOpenFeeModalStudentId] = useState<string | null>(null);
+  // Store the student object for modal display (avoids classStudents timing issues)
+  const [openFeeModalStudentObj, setOpenFeeModalStudentObj] = useState<any>(null);
 
   // Students for the selected class - MUST be before useMemo that references it
   const [classStudents, setClassStudents] = useState<any[]>([]);
@@ -107,13 +109,15 @@ const IntermediateFee = () => {
     const studentId = resolveStudentId(student);
     console.log("🔍 [openFeeModal] Starting for student ID:", studentId);
     
-    // First, ensure the student is in classStudents array BEFORE setting modal state
+    // Store student object directly for modal display (avoids classStudents timing issues)
+    setOpenFeeModalStudentObj(student);
+    
+    // Ensure student is in classStudents for other references
     const existingStudent = classStudents.find((s: any) => resolveStudentId(s) === studentId);
     console.log("🔍 [openFeeModal] Student in classStudents?", !!existingStudent);
     
     if (!existingStudent) {
       console.log("📝 [openFeeModal] Adding student to classStudents:", student);
-      // Add student to classStudents FIRST (synchronously update state)
       setClassStudents((prev) => {
         if (!prev.find((s: any) => resolveStudentId(s) === studentId)) {
           return [...prev, student];
@@ -122,7 +126,7 @@ const IntermediateFee = () => {
       });
     }
     
-    // NOW set the modal state - student should be in classStudents already
+    // NOW set the modal state
     console.log("🔵 [openFeeModal] Setting openFeeModalStudentId to:", studentId);
     setOpenFeeModalStudentId(studentId);
     
@@ -245,40 +249,94 @@ const IntermediateFee = () => {
     }
   };
 
-  // Update paid status using approve/unapprove APIs
-  const updatePaidStatus = async (studentId: string, newStatus: boolean) => {
-    try {
-      console.log(`[updatePaidStatus] studentId: ${studentId}, newStatus: ${newStatus}`);
+  // Fetch CURRENT SEMESTER fee for all students in class
+  const fetchCurrentSemesterFees = async (students: any[]) => {
+    if (!students || students.length === 0) return;
+    
+    console.log("🔍 [Intermediate] Fetching current semester fees for students:", students.length);
+    
+    const newSemesterFees: Record<string, any> = {};
+    const newPaidStatus: Record<string, boolean> = {};
+    
+    await Promise.all(students.map(async (student) => {
+      const studentId = resolveStudentId(student);
+      const studentClass = student?.class || "I"; // Intermediate uses class field for 1st/2nd year
       
-      // Find the fee record for this student
-      const record = feeRecords.find((r) => {
-        const studentObjId = r.studentId?._id || r.studentId;
-        return studentObjId?.toString() === studentId.toString();
-      });
-
-      console.log(`[updatePaidStatus] record found:`, record);
-
-      if (record) {
-        let result;
-        if (newStatus) {
-          result = await FeeService.approveFee(record._id);
-        } else {
-          result = await FeeService.unapproveFee(record._id);
-        }
-        console.log(`[updatePaidStatus] API result:`, result);
+      try {
+        // Get fee records for this student
+        const result = await FeeService.getFeeRecords({
+          studentId,
+          classId: selectedClassData?._id,
+          category: "intermediate",
+        });
         
-        // Update feeRecords with the record from API response
-        if (result?.record) {
-          console.log(`[updatePaidStatus] Updating feeRecords with API response`);
-          setFeeRecords((prev) =>
-            prev.map((r) =>
-              r._id === record._id ? { ...r, ...result.record, status: result.record.status } : r
-            )
-          );
+        const records = result?.records || result || [];
+        
+        // Find the record for current class - be flexible with matching
+        // Priority: match by classId first, then fall back to any matching record
+        let currentRecord = records.find((r: any) => 
+          r.classId === selectedClassData?._id || 
+          r.class === selectedClassData?.class ||
+          r.class === studentClass
+        );
+        
+        // If no specific match, just use the first record for this student
+        if (!currentRecord && records.length > 0) {
+          console.log(`⚠️ [fetchCurrentSemesterFees] No exact match, using first record for ${student?.name}`);
+          currentRecord = records[0];
         }
+        
+        if (currentRecord) {
+          console.log(`✅ Found fee record for ${student?.name}:`, currentRecord.status);
+          newSemesterFees[studentId] = currentRecord;
+          newPaidStatus[studentId] = currentRecord.status === "paid";
+        } else {
+          console.log(`❌ No fee record for ${student?.name} in class ${selectedClassData?._id}`);
+          newSemesterFees[studentId] = null;
+          newPaidStatus[studentId] = false;
+        }
+      } catch (err) {
+        console.error(`❌ Failed for ${studentId}:`, err);
+        newSemesterFees[studentId] = null;
+        newPaidStatus[studentId] = false;
       }
+    }));
+    
+    console.log("📊 Final paidStatus:", newPaidStatus);
+    setCurrentSemesterFees(newSemesterFees);
+    setPaidStatus(newPaidStatus);
+  };
+
+  // Update paid status using approve/unapprove APIs
+  const updatePaidStatus = async (studentId: string, newStatus: boolean, studentClass?: string) => {
+    console.log(`🔄 [updatePaidStatus] Student: ${studentId}, New Status: ${newStatus}`);
+    
+    try {
+      const currentRecord = currentSemesterFees[studentId];
+      
+      if (currentRecord) {
+        console.log(`✅ Updating fee record:`, currentRecord._id);
+        if (newStatus) {
+          await FeeService.approveFee(currentRecord._id);
+        } else {
+          await FeeService.unapproveFee(currentRecord._id);
+        }
+        setCurrentSemesterFees((prev) => ({
+          ...prev,
+          [studentId]: { ...prev[studentId], status: newStatus ? "paid" : "pending" }
+        }));
+      } else {
+        console.log(`❌ No fee record found!`);
+        toast.error(`No fee record found. Generate fee first!`);
+        setPaidStatus((prev) => ({ ...prev, [studentId]: false }));
+        return;
+      }
+      
+      setPaidStatus((prev) => ({ ...prev, [studentId]: newStatus }));
+      toast.success(newStatus ? "Fee marked as Paid" : "Fee marked as Pending");
     } catch (err) {
       console.error("Failed to update fee status:", err);
+      toast.error("Failed to update fee status");
       setPaidStatus((prev) => ({ ...prev, [studentId]: !newStatus }));
     }
   };
@@ -286,10 +344,8 @@ const IntermediateFee = () => {
   const handleGenerateFee = async (data: any) => {
     setGeneratingFee(true);
     try {
-      // Refetch fee records after generating
-      if (selectedClassData?._id) {
-        await fetchFeeRecords(selectedClassData._id);
-      }
+      // Refetch current semester fees for all students
+      await fetchCurrentSemesterFees(classStudents);
     } finally {
       setGeneratingFee(false);
     }
@@ -316,6 +372,8 @@ const IntermediateFee = () => {
     setStudentSearch("");
     setFeeRecords([]);
     setClassStudents([]);
+    setCurrentSemesterFees({});
+    setPaidStatus({});
   };
 
   // Fetch students and fee records when class is selected
@@ -325,34 +383,12 @@ const IntermediateFee = () => {
     }
   }, [view, selectedClassData?._id]);
 
-  // Separate effect: fetch fee records once students are loaded
+  // Fetch current semester fees once students are loaded
   useEffect(() => {
-    if (view === "classDetail" && selectedClassData?._id && classStudents.length > 0) {
-      fetchFeeRecords(selectedClassData._id);
+    if (view === "classDetail" && classStudents.length > 0) {
+      fetchCurrentSemesterFees(classStudents);
     }
-  }, [view, selectedClassData?._id, classStudents.length]);
-
-  // Sync paidStatus from feeRecords so the UI shows real data
-  useEffect(() => {
-    if (feeRecords.length === 0) return;
-    const newStatus: Record<string, boolean> = {};
-    feeRecords.forEach((r: any) => {
-      const sid = r.studentId?._id?.toString() || r.studentId?.toString();
-      if (sid) newStatus[sid] = r.status === "paid";
-    });
-    // Only sync from feeRecords if there's no manual override
-    setPaidStatus((prev) => {
-      const updated = { ...prev };
-      Object.entries(newStatus).forEach(([sid, status]) => {
-        // Don't overwrite if user manually toggled this student recently
-        if (!paidStatusOverride.current[sid] || paidStatusOverride.current[sid] === status) {
-          updated[sid] = status;
-          delete paidStatusOverride.current[sid];
-        }
-      });
-      return updated;
-    });
-  }, [feeRecords]);
+  }, [view, classStudents.length]);
 
   // ── CLASS DETAIL VIEW (Fee per student)
   if (view === "classDetail" && selectedClassData) {
@@ -460,30 +496,29 @@ const IntermediateFee = () => {
                     {(() => {
                       const studentId = resolveStudentId(s);
                       const isPaid = !!paidStatus[studentId];
+                      const hasFee = currentSemesterFees[studentId] !== null && currentSemesterFees[studentId] !== undefined;
                       return (
-                        <button
-                          onClick={async () => {
-                            const newStatus = !isPaid;
-                            toast.success(
-                              newStatus
-                                ? `${s?.name} marked as Paid`
-                                : `${s?.name} marked as Unpaid`
-                            );
-                            // Set override to prevent sync from overwriting
-                            paidStatusOverride.current[studentId] = newStatus;
-                            setPaidStatus((prev) => ({ ...prev, [studentId]: newStatus }));
-                            await updatePaidStatus(studentId, newStatus);
-                          }}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            isPaid ? "bg-green-500" : "bg-gray-300"
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                              isPaid ? "translate-x-6" : "translate-x-0.5"
+                        <>
+                          {!hasFee && (
+                            <span className="mb-1 block text-xs text-red-500">No fee</span>
+                          )}
+                          <button
+                            onClick={async () => {
+                              const newStatus = !isPaid;
+                              const studentClass = s?.class || "I";
+                              await updatePaidStatus(studentId, newStatus, studentClass);
+                            }}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              isPaid ? "bg-green-500" : "bg-gray-300"
                             }`}
-                          />
-                        </button>
+                          >
+                            <span
+                              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                                isPaid ? "translate-x-6" : "translate-x-0.5"
+                              }`}
+                            />
+                          </button>
+                        </>
                       );
                     })()}
                   </td>
@@ -564,205 +599,31 @@ const IntermediateFee = () => {
           );
         })()}
       </div>
-    );
-  }
-
-  // ── MAIN LIST VIEW
-  return (
-    <div>
-      <motion.h1
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-1 font-display text-xl font-bold text-foreground sm:text-2xl"
-      >
-        Intermediate Fee
-      </motion.h1>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="mb-6 text-sm text-muted-foreground"
-      >
-        {classesByDept?.length}{" "}
-        {classesByDept?.length === 1 ? "Department" : "Departments"} ·{" "}
-        {classes?.length ?? 0} Total Classes
-      </motion.p>
-
-      {/* Classes grouped by department */}
-      <div className="space-y-3">
-        {classesLoading && (
-          <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-            Loading classes...
-          </div>
-        )}
-
-        {!classesLoading && classesByDept?.length === 0 && classes?.length === 0 && (
-          <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-            No classes found. Create classes first to manage their fees.
-          </div>
-        )}
-
-        {/* If no department grouping but classes exist, show them directly */}
-        {!classesLoading && classesByDept?.length === 0 && classes && classes.length > 0 && (
-          <div className="space-y-2">
-            {classes.map((cls: any, i: number) => (
-              <motion.div
-                key={cls._id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.05 }}
-                onClick={() => {
-                  setSelectedClassData(cls);
-                  setView("classDetail");
-                  fetchClassStudents(cls._id);
-                }}
-                className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 cursor-pointer hover:bg-secondary transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{cls.className}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {cls.class === "I" ? "1st Year" : "2nd Year"} · {cls.session}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs font-medium text-primary">View Fee →</span>
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {classesByDept?.map(({ dept, classes: deptClasses }, i) => {
-          const page = classPages[dept._id] ?? 1;
-          const pageClasses = deptClasses.slice((page - 1) * classPageSize, page * classPageSize);
-          return (
-            <motion.div
-              key={dept._id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + i * 0.05 }}
-              className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
-            >
-              {/* Department header */}
-              <button
-                onClick={() =>
-                  setExpandedDept(expandedDept === dept._id ? null : dept._id)
-                }
-                className="flex w-full items-center justify-between p-4 text-left hover:bg-secondary/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Building2 className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-display text-sm font-bold text-foreground">
-                      {dept.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      {dept?.code} · {deptClasses?.length}{" "}
-                      {deptClasses?.length === 1 ? "class" : "classes"}
-                    </p>
-                  </div>
-                </div>
-                <ChevronDown
-                  className={`h-5 w-5 text-muted-foreground transition-transform ${expandedDept === dept._id ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              <AnimatePresence>
-                {expandedDept === dept._id && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="border-t border-border px-4 py-3 space-y-2">
-                      {pageClasses.length === 0 ? (
-                        <div className="text-center py-4 text-sm text-muted-foreground">
-                          No classes in this department yet
-                        </div>
-                      ) : (
-                        pageClasses.map((cls: any) => (
-                          <div
-                            key={cls._id}
-                            onClick={() => {
-                              setSelectedClassData(cls);
-                              setView("classDetail");
-                              fetchClassStudents(cls._id);
-                            }}
-                            className="flex items-center justify-between gap-2 rounded-lg bg-secondary/50 px-4 py-3 cursor-pointer hover:bg-secondary transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 shrink-0">
-                                <BookOpen className="h-4 w-4 text-primary" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-foreground">
-                                  {cls.className}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {cls.class === "I" ? "1st Year" : "2nd Year"} · {cls.session}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4 shrink-0">
-                              <div className="text-right hidden sm:block">
-                                <p className="text-xs text-muted-foreground">
-                                  {cls.classStudents?.length ?? 0} students
-                                </p>
-                              </div>
-                              <span className="text-xs font-medium text-primary">
-                                View Fee →
-                              </span>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    <PaginationControls
-                      page={page}
-                      pageSize={classPageSize}
-                      total={deptClasses.length}
-                      onPageChange={(nextPage) =>
-                        setClassPages((current) => ({ ...current, [dept._id]: nextPage }))
-                      }
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          );
-        })}
-      </div>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* FEE DETAIL MODAL - Shows all fee records for student           */}
+      {/* FEE DETAIL MODAL - Inside classDetail return, outside the div */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       {openFeeModalStudentId && (() => {
-          const currentStudent = classStudents.find((s: any) => resolveStudentId(s) === openFeeModalStudentId);
-          const modalSemester = studentSemesters[openFeeModalStudentId] || "all";
-          
-          // Filter records by selected semester
-          const filteredRecords = modalSemester === "all" 
-            ? studentFeeRecords 
-            : studentFeeRecords.filter((r: any) => r.semester === modalSemester);
-          
+        const currentStudent = openFeeModalStudentObj;
+        const modalSemester = studentSemesters[openFeeModalStudentId] || "all";
+        
+        // Filter records by selected semester
+        const filteredRecords = modalSemester === "all" 
+          ? studentFeeRecords 
+          : studentFeeRecords.filter((r: any) => r.semester === modalSemester);
+        
         return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenFeeModalStudentId(null)}>
-          <div className="flex flex-col w-full max-w-2xl rounded-2xl border border-border bg-card shadow-modal max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border shrink-0">
-            <div>
-              <h2 className="font-display text-base font-bold text-foreground">Fee Records</h2>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => { setOpenFeeModalStudentId(null); setOpenFeeModalStudentObj(null); }}>
+            <div className="flex flex-col w-full max-w-2xl rounded-2xl border border-border bg-card shadow-modal max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border shrink-0">
+                <div>
+                  <h2 className="font-display text-base font-bold text-foreground">Fee Records</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {currentStudent?.name} {currentStudent?.lastName ?? ""} · {currentStudent?.specialId}
                   </p>
                 </div>
                 <button
-                  onClick={() => setOpenFeeModalStudentId(null)}
+                  onClick={() => { setOpenFeeModalStudentId(null); setOpenFeeModalStudentObj(null); }}
                   className="rounded-lg p-1 hover:bg-secondary transition-colors"
                 >
                   <X className="h-5 w-5 text-muted-foreground" />
@@ -886,19 +747,363 @@ const IntermediateFee = () => {
                   </div>
                 )}
               </div>
-            <div className="px-6 py-4 border-t border-border shrink-0">
-              <button
-                onClick={() => setOpenFeeModalStudentId(null)}
-                className="w-full py-2 border rounded-lg text-sm font-medium text-foreground hover:bg-secondary transition-colors"
-              >
-                Close
-              </button>
+              <div className="px-6 py-4 border-t border-border shrink-0">
+                <button
+                  onClick={() => { setOpenFeeModalStudentId(null); setOpenFeeModalStudentObj(null); }}
+                  className="w-full py-2 border rounded-lg text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-        </div>
+          </div>
+        );
+      })()}
+    );
+  }
+
+  // ── MAIN LIST VIEW
+  return (
+    <div>
+      <motion.h1
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-1 font-display text-xl font-bold text-foreground sm:text-2xl"
+      >
+        Intermediate Fee
+      </motion.h1>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="mb-6 text-sm text-muted-foreground"
+      >
+        {classesByDept?.length}{" "}
+        {classesByDept?.length === 1 ? "Department" : "Departments"} ·{" "}
+        {classes?.length ?? 0} Total Classes
+      </motion.p>
+
+      {/* Classes grouped by department */}
+      <div className="space-y-3">
+        {classesLoading && (
+          <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            Loading classes...
+          </div>
+        )}
+
+        {!classesLoading && classesByDept?.length === 0 && classes?.length === 0 && (
+          <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            No classes found. Create classes first to manage their fees.
+          </div>
+        )}
+
+        {/* If no department grouping but classes exist, show them directly */}
+        {!classesLoading && classesByDept?.length === 0 && classes && classes.length > 0 && (
+          <div className="space-y-2">
+            {classes.map((cls: any, i: number) => (
+              <motion.div
+                key={cls._id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.05 }}
+                onClick={() => {
+                  setSelectedClassData(cls);
+                  setView("classDetail");
+                }}
+                className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 cursor-pointer hover:bg-secondary transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{cls.className}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {cls.class === "I" ? "1st Year" : "2nd Year"} · {cls.session}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-medium text-primary">View Fee →</span>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {classesByDept?.map(({ dept, classes: deptClasses }, i) => {
+          const page = classPages[dept._id] ?? 1;
+          const pageClasses = deptClasses.slice((page - 1) * classPageSize, page * classPageSize);
+          return (
+            <motion.div
+              key={dept._id}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + i * 0.05 }}
+              className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
+            >
+              {/* Department header */}
+              <button
+                onClick={() =>
+                  setExpandedDept(expandedDept === dept._id ? null : dept._id)
+                }
+                className="flex w-full items-center justify-between p-4 text-left hover:bg-secondary/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-sm font-bold text-foreground">
+                      {dept.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {dept?.code} · {deptClasses?.length}{" "}
+                      {deptClasses?.length === 1 ? "class" : "classes"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown
+                  className={`h-5 w-5 text-muted-foreground transition-transform ${expandedDept === dept._id ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {expandedDept === dept._id && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="border-t border-border px-4 py-3 space-y-2">
+                      {pageClasses.length === 0 ? (
+                        <div className="text-center py-4 text-sm text-muted-foreground">
+                          No classes in this department yet
+                        </div>
+                      ) : (
+                        pageClasses.map((cls: any) => (
+                          <div
+                            key={cls._id}
+                            onClick={() => {
+                              setSelectedClassData(cls);
+                              setView("classDetail");
+                            }}
+                            className="flex items-center justify-between gap-2 rounded-lg bg-secondary/50 px-4 py-3 cursor-pointer hover:bg-secondary transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 shrink-0">
+                                <BookOpen className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-foreground">
+                                  {cls.className}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {cls.class === "I" ? "1st Year" : "2nd Year"} · {cls.session}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 shrink-0">
+                              <div className="text-right hidden sm:block">
+                                <p className="text-xs text-muted-foreground">
+                                  {cls.classStudents?.length ?? 0} students
+                                </p>
+                              </div>
+                              <span className="text-xs font-medium text-primary">
+                                View Fee →
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <PaginationControls
+                      page={page}
+                      pageSize={classPageSize}
+                      total={deptClasses.length}
+                      onPageChange={(nextPage) =>
+                        setClassPages((current) => ({ ...current, [dept._id]: nextPage }))
+                      }
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
       </div>
-      );
-    })()}
-  </div>
+    );
+  }
+
+  // ── MAIN LIST VIEW
+  return (
+    <div>
+      <motion.h1
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-1 font-display text-xl font-bold text-foreground sm:text-2xl"
+      >
+        Intermediate Fee
+      </motion.h1>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="mb-6 text-sm text-muted-foreground"
+      >
+        {classesByDept?.length}{" "}
+        {classesByDept?.length === 1 ? "Department" : "Departments"} ·{" "}
+        {classes?.length ?? 0} Total Classes
+      </motion.p>
+
+      {/* Classes grouped by department */}
+      <div className="space-y-3">
+        {classesLoading && (
+          <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            Loading classes...
+          </div>
+        )}
+
+        {!classesLoading && classesByDept?.length === 0 && classes?.length === 0 && (
+          <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            No classes found. Create classes first to manage their fees.
+          </div>
+        )}
+
+        {/* If no department grouping but classes exist, show them directly */}
+        {!classesLoading && classesByDept?.length === 0 && classes && classes.length > 0 && (
+          <div className="space-y-2">
+            {classes.map((cls: any, i: number) => (
+              <motion.div
+                key={cls._id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.05 }}
+                onClick={() => {
+                  setSelectedClassData(cls);
+                  setView("classDetail");
+                }}
+                className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 cursor-pointer hover:bg-secondary transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{cls.className}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {cls.class === "I" ? "1st Year" : "2nd Year"} · {cls.session}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-medium text-primary">View Fee →</span>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {classesByDept?.map(({ dept, classes: deptClasses }, i) => {
+          const page = classPages[dept._id] ?? 1;
+          const pageClasses = deptClasses.slice((page - 1) * classPageSize, page * classPageSize);
+          return (
+            <motion.div
+              key={dept._id}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + i * 0.05 }}
+              className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
+            >
+              {/* Department header */}
+              <button
+                onClick={() =>
+                  setExpandedDept(expandedDept === dept._id ? null : dept._id)
+                }
+                className="flex w-full items-center justify-between p-4 text-left hover:bg-secondary/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-sm font-bold text-foreground">
+                      {dept.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {dept?.code} · {deptClasses?.length}{" "}
+                      {deptClasses?.length === 1 ? "class" : "classes"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown
+                  className={`h-5 w-5 text-muted-foreground transition-transform ${expandedDept === dept._id ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {expandedDept === dept._id && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="border-t border-border px-4 py-3 space-y-2">
+                      {pageClasses.length === 0 ? (
+                        <div className="text-center py-4 text-sm text-muted-foreground">
+                          No classes in this department yet
+                        </div>
+                      ) : (
+                        pageClasses.map((cls: any) => (
+                          <div
+                            key={cls._id}
+                            onClick={() => {
+                              setSelectedClassData(cls);
+                              setView("classDetail");
+                            }}
+                            className="flex items-center justify-between gap-2 rounded-lg bg-secondary/50 px-4 py-3 cursor-pointer hover:bg-secondary transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 shrink-0">
+                                <BookOpen className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-foreground">
+                                  {cls.className}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {cls.class === "I" ? "1st Year" : "2nd Year"} · {cls.session}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 shrink-0">
+                              <div className="text-right hidden sm:block">
+                                <p className="text-xs text-muted-foreground">
+                                  {cls.classStudents?.length ?? 0} students
+                                </p>
+                              </div>
+                              <span className="text-xs font-medium text-primary">
+                                View Fee →
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <PaginationControls
+                      page={page}
+                      pageSize={classPageSize}
+                      total={deptClasses.length}
+                      onPageChange={(nextPage) =>
+                        setClassPages((current) => ({ ...current, [dept._id]: nextPage }))
+                      }
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 

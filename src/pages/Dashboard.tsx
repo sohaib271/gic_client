@@ -45,7 +45,7 @@ const fetchClassAttendance = async (classId: string, date: string) => {
   return res.json();
 };
 
-type DashboardPanel = "students" | "attendance" | "facultyQR" | "faculty" | "departments" | null;
+type DashboardPanel = "students" | "attendance" | "facultyQR" | "faculty" | "departments" | "classes" | null;
 
 const Dashboard = () => {
   const { data: allUsers, isLoading: usersLoading } = useUsers("");
@@ -83,6 +83,7 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
 
   // ── Departments panel state
   const [departments, setDepartments] = useState<any[]>([]);
+  const [classSearch, setClassSearch] = useState("");
   const [showAddDepartment, setShowAddDepartment] = useState(false);
   const [deptName, setDeptName] = useState("");
   const [deptCode, setDeptCode] = useState("");
@@ -138,7 +139,7 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
 
   const stats = [
     { label: "Total Students", value: String(students.length),   icon: Users,        panel: "students"   as DashboardPanel },
-    { label: "Total Classes",  value: String(totalClasses),       icon: BookOpen,     panel: null },
+    { label: "Total Classes",  value: String(totalClasses),       icon: BookOpen,     panel: "classes" as DashboardPanel },
     { label: "Attendance",     value: "View Report",              icon: CalendarCheck, panel: "attendance" as DashboardPanel },
     { label: "Faculty", value: String(professors.length), icon: GraduationCap, panel: "faculty" as DashboardPanel },
     { label: "Faculty QR",     value: "View QR Code",             icon: QrCode,        panel: "facultyQR"  as DashboardPanel },
@@ -316,6 +317,9 @@ const facultyPagination = usePagination(filteredProfessors, 10);
                     setShowTeacherHistory(false);
                     setFacultySearch("");
                   }
+                  if (stat.panel !== "classes") {
+                    setClassSearch("");
+                  }
                 }
               }
             }}
@@ -331,6 +335,7 @@ const facultyPagination = usePagination(filteredProfessors, 10);
                 stat.panel === "faculty" ? "bg-amber-50" :
                 stat.panel === "facultyQR" ? "bg-sky-50" :
                 stat.panel === "departments" ? "bg-violet-50" :
+                stat.panel === "classes" ? "bg-indigo-50" :
                 "bg-gray-50"
               }`}>
                 <stat.icon className={`h-4 w-4 ${
@@ -339,6 +344,7 @@ const facultyPagination = usePagination(filteredProfessors, 10);
                   stat.panel === "faculty" ? "text-amber-600" :
                   stat.panel === "facultyQR" ? "text-sky-600" :
                   stat.panel === "departments" ? "text-violet-600" :
+                  stat.panel === "classes" ? "text-indigo-600" :
                   "text-gray-600"
                 }`} />
               </div>
@@ -1114,6 +1120,110 @@ const facultyPagination = usePagination(filteredProfessors, 10);
                   </div>
                 ))
               )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════ CLASSES PANEL ══════════ */}
+      <AnimatePresence>
+        {activePanel === "classes" && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-lg font-bold text-foreground">All Classes</h2>
+              </div>
+              <button
+                onClick={() => setActivePanel(null)}
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="px-5 py-3 border-b border-border bg-secondary/20">
+              <div className="relative max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={classSearch}
+                  onChange={(e) => setClassSearch(e.target.value)}
+                  placeholder="Search by name, code or department..."
+                  className="rounded-lg border border-input bg-background pl-8 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full"
+                />
+              </div>
+            </div>
+
+            {/* Classes List */}
+            <div className="divide-y divide-border max-h-96 overflow-y-auto">
+              {(() => {
+                const filtered = classSearch.trim()
+                  ? classesList.filter((c: any) => {
+                      const q = classSearch.toLowerCase();
+                      return (
+                        c.className?.toLowerCase().includes(q) ||
+                        c.code?.toLowerCase().includes(q) ||
+                        c.department?.name?.toLowerCase().includes(q) ||
+                        c.department?.code?.toLowerCase().includes(q) ||
+                        c.category?.toLowerCase().includes(q)
+                      );
+                    })
+                  : classesList;
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center p-12 text-center">
+                      <BookOpen className="h-10 w-10 text-muted-foreground mb-3" />
+                      <p className="text-sm text-muted-foreground">No classes found.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="flex items-center justify-between px-5 py-2 bg-secondary/30 border-b border-border">
+                      <span className="text-xs text-muted-foreground font-medium">
+                        {filtered.length} class{filtered.length !== 1 ? "es" : ""}
+                      </span>
+                    </div>
+                    {filtered.map((c: any) => (
+                      <div
+                        key={c._id}
+                        className="flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{c.className}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {c.code && (
+                              <span className="text-xs text-muted-foreground">Code: {c.code}</span>
+                            )}
+                            {c.department?.name && (
+                              <span className="text-xs text-muted-foreground">
+                                {c.department.name}
+                              </span>
+                            )}
+                            {c.category && (
+                              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
+                                {c.category}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {c.session ?? "—"}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
             </div>
           </motion.div>
         )}

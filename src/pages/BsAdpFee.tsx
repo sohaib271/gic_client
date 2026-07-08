@@ -59,8 +59,11 @@ const BsAdpFee = () => {
   // Single Student Generate Fee Modal
   const [openGenerateForStudentId, setOpenGenerateForStudentId] = useState<string | null>(null);
 
-  // Paid status for each student (studentId -> boolean)
+  // Paid status for each student (studentId -> boolean) - based on CURRENT semester
   const [paidStatus, setPaidStatus] = useState<Record<string, boolean>>({});
+  
+  // Current semester fee records for each student (for quick lookup)
+  const [currentSemesterFees, setCurrentSemesterFees] = useState<Record<string, any>>({});
 
   // Semester selection for each student
   const [studentSemesters, setStudentSemesters] = useState<Record<string, string>>({});
@@ -250,33 +253,100 @@ const BsAdpFee = () => {
     }
   };
 
-  // Update paid status using approve/unapprove APIs
-  const updatePaidStatus = async (studentId: string, newStatus: boolean, category: "bs" | "adp") => {
-    try {
-      // Find the fee record for this student
-      const record = feeRecords.find((r) => {
-        const studentObjId = r.studentId?._id || r.studentId;
-        return studentObjId?.toString() === studentId.toString();
-      });
-
-      if (record) {
-        if (newStatus) {
-          // Call approve API when marking as paid
-          await FeeService.approveFee(record._id);
+  // Fetch CURRENT SEMESTER fee for all students in class
+  const fetchCurrentSemesterFees = async (students: any[]) => {
+    if (!students || students.length === 0) {
+      console.log("⚠️ [fetchCurrentSemesterFees] No students to fetch for");
+      return;
+    }
+    
+    console.log("🔍 [fetchCurrentSemesterFees] Fetching for students:", students.length);
+    
+    const newSemesterFees: Record<string, any> = {};
+    const newPaidStatus: Record<string, boolean> = {};
+    
+    // Fetch fee for each student's current semester
+    await Promise.all(students.map(async (student) => {
+      const studentId = resolveId(student);
+      const studentSemester = student?.class || "I";
+      
+      console.log(`📡 [fetchCurrentSemesterFees] Fetching fee for ${student?.name} (${studentId}), Semester: ${studentSemester}`);
+      
+      try {
+        // Get ALL fee records for this student (no year filter first)
+        const result = await FeeService.getFeeRecords({
+          studentId,
+          semester: studentSemester,
+        });
+        
+        console.log(`📦 [fetchCurrentSemesterFees] Result for ${student?.name}:`, result);
+        
+        const records = result?.records || result || [];
+        
+        // Find the record for current semester (if exists)
+        const currentSemesterRecord = records.find((r: any) => 
+          r.semester === studentSemester
+        );
+        
+        if (currentSemesterRecord) {
+          console.log(`✅ [fetchCurrentSemesterFees] Found fee record for ${student?.name}:`, currentSemesterRecord.status);
+          newSemesterFees[studentId] = currentSemesterRecord;
+          newPaidStatus[studentId] = currentSemesterRecord.status === "paid";
         } else {
-          // Call unapprove API when marking as pending
-          await FeeService.unapproveFee(record._id);
+          console.log(`❌ [fetchCurrentSemesterFees] No fee record for ${student?.name} (Semester ${studentSemester})`);
+          // No fee record for current semester - mark as pending
+          newSemesterFees[studentId] = null;
+          newPaidStatus[studentId] = false;
+        }
+      } catch (err) {
+        console.error(`❌ [fetchCurrentSemesterFees] Failed to fetch fee for student ${studentId}:`, err);
+        newSemesterFees[studentId] = null;
+        newPaidStatus[studentId] = false;
+      }
+    }));
+    
+    console.log("📊 [fetchCurrentSemesterFees] Final paidStatus:", newPaidStatus);
+    setCurrentSemesterFees(newSemesterFees);
+    setPaidStatus(newPaidStatus);
+  };
+
+  // Update paid status for current semester fee
+  const updatePaidStatus = async (studentId: string, newStatus: boolean, studentSemester: string) => {
+    console.log(`🔄 [updatePaidStatus] Student: ${studentId}, New Status: ${newStatus}, Semester: ${studentSemester}`);
+    console.log(`📋 [updatePaidStatus] currentSemesterFees[${studentId}]:`, currentSemesterFees[studentId]);
+    
+    try {
+      const currentRecord = currentSemesterFees[studentId];
+      
+      if (currentRecord) {
+        console.log(`✅ [updatePaidStatus] Updating fee record:`, currentRecord._id);
+        // Fee record exists - update it
+        if (newStatus) {
+          await FeeService.approveFee(currentRecord._id);
+        } else {
+          await FeeService.unapproveFee(currentRecord._id);
         }
         // Update local state
-        setFeeRecords((prev) =>
-          prev.map((r) =>
-            r._id === record._id ? { ...r, status: newStatus ? "paid" : "pending" } : r
-          )
-        );
+        setCurrentSemesterFees((prev) => ({
+          ...prev,
+          [studentId]: { ...prev[studentId], status: newStatus ? "paid" : "pending" }
+        }));
+      } else {
+        console.log(`❌ [updatePaidStatus] No fee record found!`);
+        // No fee record exists for current semester - show toast
+        toast.error(`No fee record found for ${studentSemester}. Generate fee first!`);
+        // Revert the toggle
+        setPaidStatus((prev) => ({ ...prev, [studentId]: false }));
+        return;
       }
+      
+      // Also update the global paidStatus
+      setPaidStatus((prev) => ({ ...prev, [studentId]: newStatus }));
+      toast.success(newStatus ? "Fee marked as Paid" : "Fee marked as Pending");
     } catch (err) {
       console.error("Failed to update fee status:", err);
-      // Revert the toggle on error
+      toast.error("Failed to update fee status");
+      // Revert the toggle
       setPaidStatus((prev) => ({ ...prev, [studentId]: !newStatus }));
     }
   };
@@ -284,11 +354,8 @@ const BsAdpFee = () => {
   const handleGenerateFee = async (data: any) => {
     setGeneratingFee(true);
     try {
-      // Refetch fee records after generating
-    if (selectedClassData?._id) {
-        const category = studentPrograms[resolveId(classStudents[0])] || "bs";
-        fetchFeeRecords(selectedClassData._id, category, selectedSemester || undefined);
-      }
+      // Refetch current semester fees for all students after generating
+      await fetchCurrentSemesterFees(classStudents);
     } finally {
       setGeneratingFee(false);
     }
@@ -300,6 +367,8 @@ const BsAdpFee = () => {
     setStudentSearch("");
     setFeeRecords([]);
     setClassStudents([]);
+    setCurrentSemesterFees({});
+    setPaidStatus({});
   };
 
   // Fetch students and fee records when class is selected
@@ -326,16 +395,19 @@ const BsAdpFee = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSemester]);
 
-
+  // Fetch CURRENT SEMESTER fee status for all students when they load
   useEffect(() => {
-    if (feeRecords.length === 0) return;
-    const newStatus: Record<string, boolean> = {};
-    feeRecords.forEach((r: any) => {
-      const sid = r.studentId?._id?.toString() || r.studentId?.toString();
-      if (sid) newStatus[sid] = r.status === "paid";
-    });
-    setPaidStatus((prev) => ({ ...prev, ...newStatus }));
-  }, [feeRecords]);
+    if (view === "classDetail" && classStudents.length > 0) {
+      fetchCurrentSemesterFees(classStudents);
+    }
+  }, [view, classStudents.length]);
+
+  // Refetch current semester fees when switching to class detail
+  useEffect(() => {
+    if (view === "classDetail") {
+      fetchCurrentSemesterFees(classStudents);
+    }
+  }, [view]);
 
   // ── CLASS DETAIL VIEW (Fee per student)
   if (view === "classDetail" && selectedClassData) {
@@ -427,9 +499,14 @@ const BsAdpFee = () => {
                     </span>
                   </td>
                   <td className="p-4">
-                    <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-muted-foreground">
-                      {s?.class ? `Semester ${s.class}` : "Semester 1"}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-muted-foreground">
+                        {s?.class ? `Semester ${s.class}` : "Semester 1"}
+                      </span>
+                      {currentSemesterFees[resolveId(s)] === null && (
+                        <span className="text-xs text-red-500">No fee generated</span>
+                      )}
+                    </div>
                   </td>
                   <td className="p-4">
                     <button
@@ -448,14 +525,8 @@ const BsAdpFee = () => {
                         const studentId = resolveId(s);
                         const isPaid = !!paidStatus[studentId];
                         const newStatus = !isPaid;
-                        const category = (s?.category as "bs" | "adp") || "bs";
-                        toast.success(
-                          newStatus
-                            ? `${s?.name} marked as Paid`
-                            : `${s?.name} marked as Unpaid`
-                        );
-                        setPaidStatus((prev) => ({ ...prev, [studentId]: newStatus }));
-                        await updatePaidStatus(studentId, newStatus, category);
+                        const studentSemester = s?.class || "I";
+                        await updatePaidStatus(studentId, newStatus, studentSemester);
                       }}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                         !!paidStatus[resolveId(s)] ? "bg-green-500" : "bg-gray-300"
@@ -513,10 +584,7 @@ const BsAdpFee = () => {
           semester={classStudents[0]?.class || "I"}
           onGenerate={handleGenerateFee}
           onSuccess={() => {
-            if (selectedClassData?._id) {
-              const category = (classStudents[0]?.category as "bs" | "adp") || "bs";
-              fetchFeeRecords(selectedClassData._id, category, selectedSemester || undefined);
-            }
+            fetchCurrentSemesterFees(classStudents);
           }}
         />
 
@@ -536,10 +604,7 @@ const BsAdpFee = () => {
               singleStudentMode={true}
               onGenerate={handleGenerateFee}
               onSuccess={() => {
-                if (selectedClassData?._id) {
-                  const category = (student?.category as "bs" | "adp") || "bs";
-                  fetchFeeRecords(selectedClassData._id, category, selectedSemester || undefined);
-                }
+                fetchCurrentSemesterFees(classStudents);
                 setOpenGenerateForStudentId(null);
               }}
             />
