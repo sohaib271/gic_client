@@ -18,6 +18,7 @@ class FeeService {
     description?: string;
     category: "intermediate" | "bs" | "adp";
     semester?: string;
+    class?: string;
     customFields?: { label: string; value: any }[];
   }) {
     const res = await fetch(`${API}/fee/generate`, {

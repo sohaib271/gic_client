@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronLeft, BookOpen, Building2, Search, Plus, Eye, DollarSign, Loader2, X, Check, Receipt } from "lucide-react";
+import { ChevronDown, ChevronLeft, BookOpen, Building2, Search, Plus, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useDepartments } from "@/hooks/useDepartments";
 import { useUsers } from "@/hooks/useUsers";
@@ -8,6 +8,7 @@ import { useClasses } from "@/hooks/useClasses";
 import PaginationControls from "@/components/PaginationControls";
 import TableSkeleton from "@/components/TableSkeleton";
 import GenerateFeeModal from "@/components/GenerateFeeModal";
+import FeeRecordsViewModal from "@/components/FeeRecordsViewModal";
 import { useSelector } from "react-redux";
 import FeeService from "@/services/feeService";
 import ClassService from "@/services/classService";
@@ -611,55 +612,16 @@ const BsAdpFee = () => {
           );
         })()}
 
-        {/* FEE DETAIL MODAL */}
-        {openFeeModalStudentId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenFeeModalStudentId(null)}>
-            <div className="flex flex-col w-full max-w-2xl rounded-2xl border border-border bg-card shadow-modal max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border shrink-0">
-                <div>
-                  <h2 className="font-display text-base font-bold text-foreground">Fee Records</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {classStudents.find((s: any) => resolveId(s) === openFeeModalStudentId)?.name} · {classStudents.find((s: any) => resolveId(s) === openFeeModalStudentId)?.specialId}
-                  </p>
-                </div>
-                <button onClick={() => setOpenFeeModalStudentId(null)} className="rounded-lg p-1 hover:bg-secondary">
-                  <X className="h-5 w-5 text-muted-foreground" />
-                </button>
-              </div>
-              <div className="overflow-y-auto flex-1 px-6 py-4">
-                {loadingStudentFees ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                ) : studentFeeRecords.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Receipt className="h-10 w-10 mx-auto mb-3" />
-                    <p>No fee records found</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {studentFeeRecords.map((r: any) => (
-                      <div key={r._id} className="rounded-lg border border-border bg-secondary/20 p-4">
-                        <div className="flex justify-between mb-2">
-                          <span className="font-medium capitalize">{r.month} {r.year}</span>
-                          <span className="font-bold">PKR {r.amount?.toLocaleString()}</span>
-                        </div>
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${
-                          r.status === 'paid' ? 'bg-green-100 text-green-800' :
-                          r.status === 'waived' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>{r.status}</span>
-                        {r.status !== 'paid' && (
-                          <button onClick={() => updateFeeStatus(r._id, 'paid')} className="ml-2 text-xs text-green-600 hover:underline">Mark Paid</button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="px-6 py-4 border-t">
-                <button onClick={() => setOpenFeeModalStudentId(null)} className="w-full py-2 border rounded-lg">Close</button>
-              </div>
-            </div>
-          </div>
-        )}
+        <FeeRecordsViewModal
+          open={!!openFeeModalStudentId}
+          onClose={() => setOpenFeeModalStudentId(null)}
+          studentName={classStudents.find((s: any) => resolveId(s) === openFeeModalStudentId)?.name}
+          studentSpecialId={classStudents.find((s: any) => resolveId(s) === openFeeModalStudentId)?.specialId}
+          records={studentFeeRecords}
+          loading={loadingStudentFees}
+          onMarkPaid={(id) => updateFeeStatus(id, "paid")}
+          classes={classes}
+        />
       </div>
     );
   }
@@ -836,79 +798,16 @@ const BsAdpFee = () => {
         })}
       </div>
 
-      {/* FEE DETAIL MODAL */}
-      {openFeeModalStudentId && (() => {
-        const currentStudent = classStudents.find((s: any) => resolveId(s) === openFeeModalStudentId);
-        const studentSem = currentStudent?.class || "I";
-        const modalSemester = studentSemesters[openFeeModalStudentId] || studentSem;
-        
-        // Filter records by selected semester
-        const filteredRecords = studentFeeRecords.filter((r: any) => r.semester === modalSemester);
-        
-        return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenFeeModalStudentId(null)}>
-          <div className="flex flex-col w-full max-w-2xl rounded-2xl border border-border bg-card shadow-modal max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border shrink-0">
-              <div>
-                <h2 className="font-display text-base font-bold text-foreground">Fee Records</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {currentStudent?.name} · {currentStudent?.specialId}
-                </p>
-              </div>
-              <button onClick={() => setOpenFeeModalStudentId(null)} className="rounded-lg p-1 hover:bg-secondary">
-                <X className="h-5 w-5 text-muted-foreground" />
-              </button>
-            </div>
-            
-            {/* Semester Filter in Modal */}
-            <div className="px-6 py-3 border-b border-border bg-secondary/20">
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium">Semester:</label>
-                <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                  {studentSem}
-                </span>
-                <span className="text-xs text-muted-foreground">({filteredRecords.length} records)</span>
-              </div>
-            </div>
-            
-            <div className="overflow-y-auto flex-1 px-6 py-4">
-              {loadingStudentFees ? (
-                <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-              ) : filteredRecords.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Receipt className="h-10 w-10 mx-auto mb-3" />
-                  <p>No fee records found for Semester {modalSemester}</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {filteredRecords.map((r: any) => (
-                    <div key={r._id} className="rounded-lg border border-border bg-secondary/20 p-4">
-                      <div className="flex justify-between mb-2">
-                        <div>
-                          <span className="font-medium capitalize">{r.month} {r.year}</span>
-                          <span className="ml-2 text-xs bg-secondary px-2 py-0.5 rounded">Sem {r.semester}</span>
-                        </div>
-                        <span className="font-bold">PKR {r.amount?.toLocaleString()}</span>
-                      </div>
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${
-                        r.status === 'paid' ? 'bg-green-100 text-green-800' :
-                        r.status === 'waived' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>{r.status}</span>
-                      {r.status !== 'paid' && (
-                        <button onClick={() => updateFeeStatus(r._id, 'paid')} className="ml-2 text-xs text-green-600 hover:underline">Mark Paid</button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="px-6 py-4 border-t">
-              <button onClick={() => setOpenFeeModalStudentId(null)} className="w-full py-2 border rounded-lg">Close</button>
-            </div>
-          </div>
-        </div>
-        );
-      })()}
+      <FeeRecordsViewModal
+        open={!!openFeeModalStudentId}
+        onClose={() => setOpenFeeModalStudentId(null)}
+        studentName={classStudents.find((s: any) => resolveId(s) === openFeeModalStudentId)?.name}
+        studentSpecialId={classStudents.find((s: any) => resolveId(s) === openFeeModalStudentId)?.specialId}
+        records={studentFeeRecords}
+        loading={loadingStudentFees}
+        onMarkPaid={(id) => updateFeeStatus(id, "paid")}
+        classes={classes}
+      />
     </div>
   );
 };

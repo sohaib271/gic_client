@@ -9,6 +9,8 @@ interface Student {
   specialId?: string;
   name?: string;
   lastName?: string;
+  class?: string;
+  classId?: string;
 }
 
 interface ClassOption {
@@ -63,6 +65,14 @@ const MONTHS = [
   { value: "december", label: "December" },
 ];
 
+const INTERMEDIATE_YEARS = [
+  { value: "I", label: "1st Year" },
+  { value: "II", label: "2nd Year" },
+];
+
+const getIntermediateYearLabel = (value: string) =>
+  INTERMEDIATE_YEARS.find((year) => year.value === value)?.label ?? value;
+
 const currentMonth = new Date().toLocaleString("en-US", { month: "long" }).toLowerCase();
 const currentDate = new Date().toISOString().split("T")[0];
 
@@ -95,19 +105,8 @@ export default function GenerateFeeModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const currentYear = new Date().getFullYear();
 
-  // Semester selection — for BS/ADP (auto-filled from student's class)
+  // Semester/year selection — BS/ADP uses semester; Intermediate uses I/II (1st/2nd Year)
   const [selectedSemester, setSelectedSemester] = useState<string>(semester || "I");
-
-  // Class selection — for Intermediate
-  // In single-student mode, use student's classId if available, otherwise fall back to classId prop
-  const getDefaultClassId = () => {
-    if (isSingleStudent && students[0]?.classId) {
-      return students[0].classId;
-    }
-    return classId || "";
-  };
-
-  const [selectedClassId, setSelectedClassId] = useState<string>(getDefaultClassId());
 
   // Custom fields state
   const [customFields, setCustomFields] = useState<CustomField[]>([
@@ -158,6 +157,14 @@ export default function GenerateFeeModal({
 
   const isIntermediate = category === "intermediate";
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const defaultYear = isSingleStudent && students[0]?.class
+      ? students[0].class
+      : semester || "I";
+    setSelectedSemester(defaultYear);
+  }, [isOpen, semester, isSingleStudent, students, isIntermediate]);
+
   const SEMESTERS = [
     { value: "I", label: "Semester I" },
     { value: "II", label: "Semester II" },
@@ -206,13 +213,16 @@ export default function GenerateFeeModal({
       toast.error("Please select at least one student");
       return;
     }
-    if (isIntermediate && !selectedClassId) {
-      toast.error("Please select a class");
+    if (isIntermediate && !classId) {
+      toast.error("Class not found");
       return;
     }
 
-    const payloadClassId = isIntermediate ? selectedClassId : classId;
-    const payloadSemester = isIntermediate ? undefined : selectedSemester;
+    const payloadClassId = classId || "";
+    const intermediateYearValue = isSingleStudent && students[0]?.class
+      ? students[0].class
+      : selectedSemester || "I";
+    const payloadSemester = isIntermediate ? "" : selectedSemester;
 
     // Filter out empty custom fields
     const filteredCustomFields = customFields.filter(f => f.label.trim() !== "");
@@ -229,10 +239,11 @@ export default function GenerateFeeModal({
         month,
         year: currentYear,
         dueDate,
-        amount: finalTotalAmount, // Use total instead of just main amount
+        amount: finalTotalAmount,
         description,
         category,
         semester: payloadSemester,
+        ...(isIntermediate ? { class: getIntermediateYearLabel(intermediateYearValue) } : {}),
         customFields: filteredCustomFields.length > 0 ? filteredCustomFields : undefined,
       });
 
@@ -357,14 +368,14 @@ export default function GenerateFeeModal({
                       Class
                     </label>
                     <select
-                      value={selectedClassId}
-                      onChange={(e) => setSelectedClassId(e.target.value)}
-                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      value={selectedSemester}
+                      onChange={(e) => setSelectedSemester(e.target.value)}
+                      disabled={isSingleStudent}
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      <option value="">Select Class</option>
-                      {classes?.map((cls) => (
-                        <option key={cls._id} value={cls._id}>
-                          {cls.className}
+                      {INTERMEDIATE_YEARS.map((year) => (
+                        <option key={year.value} value={year.value}>
+                          {year.label}
                         </option>
                       ))}
                     </select>
@@ -378,7 +389,8 @@ export default function GenerateFeeModal({
                     <select
                       value={selectedSemester}
                       onChange={(e) => setSelectedSemester(e.target.value)}
-                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      disabled
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {SEMESTERS.map((s) => (
                         <option key={s.value} value={s.value}>
