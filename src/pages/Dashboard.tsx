@@ -1353,27 +1353,39 @@ const facultyPagination = usePagination(filteredProfessors, 10);
 
       {/* ── Quick Overview ── */}
       {!isLoading && (
-        <div className="grid grid-cols-3 gap-5">
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Intermediate</span>
-            <p className="text-3xl font-semibold text-gray-900 mt-1">
-              {students.filter((s: any) => s.category === "intermediate").length}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Students</p>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          {/* Header */}
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-orange-50">
+              <TrendingUp className="h-4 w-4 text-orange-500" />
+            </div>
+            <span className="text-sm font-semibold text-gray-800">Quick Overview</span>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">BS</span>
-            <p className="text-3xl font-semibold text-gray-900 mt-1">
-              {students.filter((s: any) => s.category === "bs").length}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Students</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">ADP</span>
-            <p className="text-3xl font-semibold text-gray-900 mt-1">
-              {students.filter((s: any) => s.category === "adp").length}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Students</p>
+
+          {/* Cards Row */}
+          <div className="grid grid-cols-3 gap-3 px-5 py-4">
+            {[
+              { label: "INTERMEDIATE", subLabel: "Students", count: students.filter((s: any) => s.category === "intermediate").length },
+              { label: "BS Students", subLabel: "", count: students.filter((s: any) => s.category === "bs").length },
+              { label: "ADP Students", subLabel: "", count: students.filter((s: any) => s.category === "adp").length },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="bg-gray-100 rounded-lg p-4 flex flex-col justify-between h-28 hover:bg-gray-200 transition-colors cursor-pointer group"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{item.label}</span>
+                    <p className="text-2xl font-bold text-gray-900">{item.count}</p>
+                    {item.subLabel && <p className="text-xs text-gray-400">{item.subLabel}</p>}
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-orange-50 group-hover:bg-orange-100 transition-colors mt-0.5">
+                    <GraduationCap className="h-4 w-4 text-orange-500" />
+                  </div>
+                </div>
+
+              </div>
+            ))}
           </div>
         </div>
       )}
