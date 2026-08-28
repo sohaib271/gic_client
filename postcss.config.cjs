@@ -5,6 +5,15 @@ module.exports = {
   },
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+=======
+<<<<<<< HEAD
+};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+=======
+<<<<<<< HEAD
+};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+=======
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 =======
 <<<<<<< HEAD
@@ -12,6 +21,7 @@ module.exports = {
 =======
 <<<<<<< HEAD
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+>>>>>>> f88439fdad9eaa94acf9b3b3ce577c09afde2304
 >>>>>>> 4dbbcd05cf5b2a1a18d7d55a2ca9d16cf445c762
 =======
 };
