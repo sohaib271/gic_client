@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Trash2, X, Eye, ArrowRight, Upload } from "lucide-react";
+import { Pencil, Trash2, X, Eye, ArrowRight, Upload, Receipt } from "lucide-react";
 import ConfirmDeleteModal from "@/components/ConfirmDelete"
 import TableSkeleton from "@/components/TableSkeleton";
+import StudentFeeDetailModal from "@/components/StudentFeeDetailModal";
 import {
   StudentFormField as Field,
 } from "@/components/students/StudentFormPrimitives";
@@ -113,6 +114,9 @@ const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
   // const [localStudents, setLocalStudents] = useState<any[]>([]);
   const [detailStudent, setDetailStudent] = useState<any | null>(null);
   const [form, setForm] = useState(defaultForm);
+  
+  // ✅ Fee detail modal state
+  const [feeDetailStudent, setFeeDetailStudent] = useState<any | null>(null);
 
   // ✅ All students = server data + any locally added ones this session
   // const allStudents = useMemo(() => [...intermediateUsers, ...localStudents], [intermediateUsers, localStudents]);
@@ -351,6 +355,11 @@ const handleEditStudent = async () => {
                       className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
                       <Eye className="h-4 w-4" />
                     </button>
+                    <button onClick={() => setFeeDetailStudent(s)}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-accent-foreground transition-colors"
+                      title="View Fee Details">
+                      <Receipt className="h-4 w-4" />
+                    </button>
                   <button
   onClick={() => {
     setEditingStudent(s);
@@ -562,6 +571,14 @@ const handleEditStudent = async () => {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* ✅ Student Fee Detail Modal */}
+      <StudentFeeDetailModal
+        open={!!feeDetailStudent}
+        student={feeDetailStudent}
+        onClose={() => setFeeDetailStudent(null)}
+      />
+
       <ConfirmDeleteModal
   open={!!deleteTarget}
   studentName={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}

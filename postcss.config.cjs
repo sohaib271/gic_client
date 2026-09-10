@@ -4,6 +4,9 @@ module.exports = {
     autoprefixer: {},
   },
 <<<<<<< HEAD
+};
+=======
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -28,3 +31,4 @@ module.exports = {
 =======
 };
 >>>>>>> bfbc0840e755dc8555901297fdc45ac896bf41c2
+>>>>>>> main
