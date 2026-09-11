@@ -1,0 +1,30 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "clean-code",
+    "lovable-backup-main-1788422880",
+    "main",
+    "my_local_work",
+    "origin",
+    "security",
+    "zaid"
+  ],
+  "parent": {
+    "clean-code": "main",
+    "lovable-backup-main-1788422880": "main",
+    "main": null,
+    "my_local_work": "main",
+    "origin": "main",
+    "security": "main",
+    "zaid": "main"
+  },
+  "order": [
+    "main",
+    "clean-code",
+    "lovable-backup-main-1788422880",
+    "my_local_work",
+    "origin",
+    "security",
+    "zaid"
+  ]
+}
