@@ -104,4 +104,14 @@ Download a blank template from the Upload Bulk button in the students pages.
 
 ## Environment
 
-No `.env` required. The API base URL is set directly in `src/services/otherService.ts`. Change it before building for production:
+The API base URL comes from `VITE_API_URL`.
+
+For local development, set `VITE_API_URL=http://localhost:3000` in `.env`.
+
+For deployment, set `VITE_API_URL` to the backend's public HTTPS URL in the
+frontend hosting service's **build environment variables**, then rebuild and
+redeploy. Vite embeds this value at build time. Do not use localhost for the live
+site: it points to the visitor's computer. The local `.env` is ignored by Git.
+
+On the backend, set `PRODUCTION_URL` to the frontend's exact origin (scheme and
+hostname, without a trailing slash) so the existing CORS configuration allows it.
