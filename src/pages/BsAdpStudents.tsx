@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Trash2, X, Eye, ArrowRight, Upload } from "lucide-react";
+import { Pencil, Trash2, X, Eye, ArrowRight, Upload, Receipt } from "lucide-react";
 import TableSkeleton from "@/components/TableSkeleton";
+import StudentFeeDetailModal from "@/components/StudentFeeDetailModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
@@ -76,6 +77,9 @@ const BsAdpStudents = () => {
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 const [deleting,     setDeleting]     = useState(false);
   const [form, setForm] = useState(defaultForm);
+  
+  // ✅ Fee detail modal state
+  const [feeDetailStudent, setFeeDetailStudent] = useState<any | null>(null);
 
   const [bulkUploading, setBulkUploading] = useState(false);
 
@@ -437,6 +441,13 @@ const [deleting,     setDeleting]     = useState(false);
                       className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
                     >
                       <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setFeeDetailStudent(s)}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-accent-foreground transition-colors"
+                      title="View Fee Details"
+                    >
+                      <Receipt className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => {
@@ -829,6 +840,14 @@ const [deleting,     setDeleting]     = useState(false);
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ✅ Student Fee Detail Modal */}
+      <StudentFeeDetailModal
+        open={!!feeDetailStudent}
+        student={feeDetailStudent}
+        onClose={() => setFeeDetailStudent(null)}
+      />
+
       <ConfirmDeleteModal
   open={!!deleteTarget}
   studentName={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
