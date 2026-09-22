@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Eye, Users, Search, FileDown, X, CalendarCheck, Plus } from "lucide-react";
 import { useSelector } from "react-redux";
 import TableSkeleton from "@/components/TableSkeleton";
+import ActiveUserToggle from "@/components/ActiveUserToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUsers } from "@/hooks/useUsers";
@@ -250,7 +251,7 @@ const HodStudents = () => {
         <table className="w-full min-w-[700px]">
           <thead>
             <tr className="border-b border-border">
-              {["S.No", "Student ID", "Name", "Last Name", "Class", "Session", "Actions"].map((h) => (
+              {["S.No", "Student ID", "Name", "Last Name", "Class", "Session", "Status", "Actions"].map((h) => (
                 <th key={h} className="p-3 sm:p-4 text-left text-xs sm:text-sm font-medium text-muted-foreground">
                   {h}
                 </th>
@@ -269,6 +270,9 @@ const HodStudents = () => {
                 <td className="p-3 sm:p-4 text-xs sm:text-sm">{s?.class}</td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">{s?.session}</td>
                 <td className="p-3 sm:p-4">
+                  <ActiveUserToggle user={s} refetch={refetch} showLabel={false} />
+                </td>
+                <td className="p-3 sm:p-4">
                   <div className="flex gap-1">
                     <button onClick={() => setDetail(s)}
                       className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
@@ -285,7 +289,7 @@ const HodStudents = () => {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="p-8 text-center text-sm text-muted-foreground">
                   No students found.
                 </td>
               </tr>

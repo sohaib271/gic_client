@@ -300,6 +300,15 @@ static async getAttendanceByDate(classId: string, date: string) {
   });
   return res.json();
 }
+
+static async getStudentProgress(studentId: string) {
+  const res = await fetch(`${API}/attendance/student-progress/${studentId}`, {
+    method: "GET",
+    headers: this.authHeaders(),
+    credentials:"include",
+  });
+  return res.json();
+}
 }
 
 export default ClassService;

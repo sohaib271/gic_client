@@ -67,6 +67,16 @@ class NotificationService {
     });
     return res.json();
   }
+
+  static async sendAlert(title: string, message: string) {
+    const res = await fetch(`${API}/notifications/alert`, {
+      method: "POST",
+      headers: this.authHeaders(),
+      credentials: "include",
+      body: JSON.stringify({ title, message }),
+    });
+    return res.json();
+  }
 }
 
 export default NotificationService;

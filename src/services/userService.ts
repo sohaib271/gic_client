@@ -76,6 +76,11 @@ static async getTeacherSchedule (teacherId: string){
   const res = await fetch(`${API}/users/get-schedule/${teacherId}`,{method:"GET",headers:this.authHeaders(),credentials:"include",});
   return res.json();
 }
+
+static async getActiveToday(){
+  const res = await fetch(`${API}/users/active-today`,{method:"GET",headers:this.authHeaders(),credentials:"include",});
+  return res.json();
+}
 }
 
 export default UserService

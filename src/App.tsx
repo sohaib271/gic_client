@@ -39,6 +39,18 @@ const BsAdpClasses = lazy(() => import("./pages/BsAdpClasses"));
 const Fee = lazy(() => import("./pages/Fee"));
 const IntermediateFee = lazy(() => import("./pages/IntermediateFee"));
 const BsAdpFee = lazy(() => import("./pages/BsAdpFee"));
+const Settings = lazy(() => import("./pages/Settings"));
+const LeaveManagement = lazy(() => import("./pages/LeaveManagement"));
+const AppSettings = lazy(() => import("./pages/AppSettings"));
+const SendAlert = lazy(() => import("./pages/SendAlert"));
+const Survey = lazy(() => import("./pages/Survey"));
+const ActiveUsers = lazy(() => import("./pages/ActiveUsers"));
+const Announcements = lazy(() => import("./pages/Announcements"));
+const Security = lazy(() => import("./pages/Security"));
+const StudentProgress = lazy(() => import("./pages/StudentProgress"));
+const HodSettings = lazy(() => import("./pages/HodSettings"));
+const HodStudentProgress = lazy(() => import("./pages/HodStudentProgress"));
+const HodSecurity = lazy(() => import("./pages/HodSecurity"));
 const ProfessorDashboard = lazy(() => import("./pages/ProfessorDashboard"));
 const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
 const HodClasses = lazy(() => import("./pages/HodClasses"));
@@ -92,6 +104,15 @@ const App = () => (
                 <Route path="fee" element={<Fee />} />
                 <Route path="fee/intermediate" element={<IntermediateFee />} />
                 <Route path="fee/bs-adp" element={<BsAdpFee />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="leave-management" element={<LeaveManagement />} />
+                <Route path="app-settings" element={<AppSettings />} />
+                <Route path="send-alert" element={<SendAlert />} />
+                <Route path="survey" element={<Survey />} />
+                <Route path="active-users" element={<ActiveUsers />} />
+                <Route path="announcements" element={<Announcements />} />
+                <Route path="security" element={<Security />} />
+                <Route path="student-progress" element={<StudentProgress />} />
               </Route>
               <Route path="/professor" element={<ProfessorLayout />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
@@ -100,6 +121,9 @@ const App = () => (
                 <Route path="department/classes" element={<HodClasses />} />
                 <Route path="department/faculty" element={<HodFaculty />} />
                 <Route path="department/students" element={<HodStudents />} />
+                <Route path="settings" element={<HodSettings />} />
+                <Route path="settings/student-progress" element={<HodStudentProgress />} />
+                <Route path="settings/security" element={<HodSecurity />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Trash2, X, Eye, ArrowRight, Upload, Receipt } from "lucide-react";
 import TableSkeleton from "@/components/TableSkeleton";
 import StudentFeeDetailModal from "@/components/StudentFeeDetailModal";
+import ActiveUserToggle from "@/components/ActiveUserToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
@@ -483,6 +484,7 @@ const [deleting,     setDeleting]     = useState(false);
   className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
   <Trash2 className="h-4 w-4" />
 </button>
+                      <ActiveUserToggle user={s} refetch={refetch} />
                   </div>
                 </td>
               </motion.tr>
@@ -850,7 +852,7 @@ const [deleting,     setDeleting]     = useState(false);
 
       <ConfirmDeleteModal
   open={!!deleteTarget}
-  studentName={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
+  name={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
   deleting={deleting}
   onConfirm={handleDeleteConfirm}
   onCancel={() => setDeleteTarget(null)}

@@ -4,6 +4,7 @@ import { Pencil, Trash2, X, Eye, ArrowRight, Upload, Receipt } from "lucide-reac
 import ConfirmDeleteModal from "@/components/ConfirmDelete"
 import TableSkeleton from "@/components/TableSkeleton";
 import StudentFeeDetailModal from "@/components/StudentFeeDetailModal";
+import ActiveUserToggle from "@/components/ActiveUserToggle";
 import {
   StudentFormField as Field,
 } from "@/components/students/StudentFormPrimitives";
@@ -390,6 +391,7 @@ const handleEditStudent = async () => {
   className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
   <Trash2 className="h-4 w-4" />
 </button>
+                    <ActiveUserToggle user={s} refetch={refetch} />
                   </div>
                 </td>
               </motion.tr>
@@ -581,7 +583,7 @@ const handleEditStudent = async () => {
 
       <ConfirmDeleteModal
   open={!!deleteTarget}
-  studentName={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
+  name={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
   deleting={deleting}
   onConfirm={handleDeleteConfirm}
   onCancel={() => setDeleteTarget(null)}
