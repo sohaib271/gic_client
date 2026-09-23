@@ -1,74 +1,85 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { TrendingUp, Shield, ArrowRight } from "lucide-react";
+import { TrendingUp, Shield, Wallet, ChevronRight } from "lucide-react";
 import { useSelector } from "react-redux";
 
 const HodSettings = () => {
   const navigate = useNavigate();
   const user = useSelector((state: any) => state?.user.user);
 
+  const notificationCards = [
+    {
+      label: "Student Progress",
+      icon: TrendingUp,
+      iconBg: "bg-orange-50",
+      iconColor: "text-orange-600",
+      onClick: () => navigate("/professor/settings/student-progress"),
+      sub: `Attendance and academic overview of students${user?.department?.code ? ` in ${user.department.code}` : " in your department"}`,
+    },
+    {
+      label: "Department Fees",
+      icon: Wallet,
+      iconBg: "bg-teal-50",
+      iconColor: "text-teal-600",
+      onClick: () => navigate("/professor/settings/department-fee"),
+      sub: `Fee overview of every student${user?.department?.code ? ` in ${user.department.code}` : " in your department"}`,
+    },
+    {
+      label: "Security & Account",
+      icon: Shield,
+      iconBg: "bg-violet-50",
+      iconColor: "text-violet-600",
+      onClick: () => navigate("/professor/settings/security"),
+      sub: "Change password, update profile, email OTP",
+    },
+  ];
+
   return (
     <div>
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-1 font-display text-xl font-bold text-foreground sm:text-2xl"
+        className="mb-2 font-display text-xl font-bold text-foreground sm:text-2xl"
       >
         Settings
       </motion.h1>
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.05 }}
+        transition={{ delay: 0.1 }}
         className="mb-8 text-sm text-muted-foreground"
       >
         Controls for the HOD account
       </motion.p>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={() => navigate("/professor/settings/student-progress")}
-          className="group cursor-pointer rounded-2xl border border-border bg-card p-6 shadow-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
-        >
-          <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50">
-            <TrendingUp className="h-6 w-6 text-orange-600" />
-          </div>
-          <h2 className="font-display text-lg font-bold text-foreground">
-            Student Progress
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Attendance and academic overview of students
-            {user?.department?.code
-              ? ` in ${user.department.code}`
-              : " in your department"}
-          </p>
-          <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary">
-            Manage <ArrowRight className="h-4 w-4 transition-all group-hover:translate-x-1" />
-          </div>
-        </motion.div>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {notificationCards.map((card, i) => (
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.06 }}
+            onClick={card.onClick}
+            className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm transition-all duration-200 cursor-pointer hover:shadow-md hover:border-primary/40"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                {card.label}
+              </span>
+              <div className={`p-2 rounded-lg ${card.iconBg}`}>
+                <card.icon className={`h-4 w-4 ${card.iconColor}`} />
+              </div>
+            </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          onClick={() => navigate("/professor/settings/security")}
-          className="group cursor-pointer rounded-2xl border border-border bg-card p-6 shadow-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
-        >
-          <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50">
-            <Shield className="h-6 w-6 text-violet-600" />
-          </div>
-          <h2 className="font-display text-lg font-bold text-foreground">
-            Security & Account
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Change password, update profile, email OTP
-          </p>
-          <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary">
-            Manage <ArrowRight className="h-4 w-4 transition-all group-hover:translate-x-1" />
-          </div>
-        </motion.div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-600">{card.sub}</p>
+              <span className="flex shrink-0 items-center gap-0.5 text-xs font-medium text-primary">
+                Manage
+                <ChevronRight className="h-3.5 w-3.5" />
+              </span>
+            </div>
+          </motion.div>
+        ))}
       </div>
     </div>
   );

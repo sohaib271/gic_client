@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CalendarClock, Settings2, Megaphone, ClipboardList, Users, ChevronRight, BellRing, Shield, TrendingUp } from "lucide-react";
+import { CalendarClock, Settings2, Megaphone, ClipboardList, Users, ChevronRight, BellRing, Shield } from "lucide-react";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -62,15 +62,7 @@ const Settings = () => {
       onClick: () => navigate("/admin/security"),
       sub: "Change password, update profile, email OTP",
     },
-    {
-      label: "Student Progress",
-      icon: TrendingUp,
-      iconBg: "bg-orange-50",
-      iconColor: "text-orange-600",
-      onClick: () => navigate("/admin/student-progress"),
-      sub: "Attendance & academic overview of any student",
-    },
-  ];
+    ];
 
   return (
     <div>

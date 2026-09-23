@@ -54,7 +54,8 @@ const ActiveUsers = () => {
       try {
         const result = await UserService.getActiveToday();
         if (Array.isArray(result)) {
-          setUsers(result);
+          const allowedRoles = ["student", "proff", "hod"];
+          setUsers(result.filter((u) => allowedRoles.includes(u.role)));
         } else {
           toast.error(result?.message || "Failed to load active users");
         }

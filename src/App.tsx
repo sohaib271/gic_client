@@ -50,6 +50,7 @@ const Security = lazy(() => import("./pages/Security"));
 const StudentProgress = lazy(() => import("./pages/StudentProgress"));
 const HodSettings = lazy(() => import("./pages/HodSettings"));
 const HodStudentProgress = lazy(() => import("./pages/HodStudentProgress"));
+const HodDepartmentFee = lazy(() => import("./pages/HodDepartmentFee"));
 const HodSecurity = lazy(() => import("./pages/HodSecurity"));
 const ProfessorDashboard = lazy(() => import("./pages/ProfessorDashboard"));
 const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
@@ -123,6 +124,7 @@ const App = () => (
                 <Route path="department/students" element={<HodStudents />} />
                 <Route path="settings" element={<HodSettings />} />
                 <Route path="settings/student-progress" element={<HodStudentProgress />} />
+                <Route path="settings/department-fee" element={<HodDepartmentFee />} />
                 <Route path="settings/security" element={<HodSecurity />} />
               </Route>
               <Route path="*" element={<NotFound />} />

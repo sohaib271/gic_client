@@ -18,6 +18,7 @@ import {
   Loader2,
   Sparkles,
   ShieldCheck,
+  FileDown,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import ClassService from "@/services/classService";
@@ -115,6 +116,7 @@ const StudentProgress = ({ deptId, backPath = "/admin/settings" }: { deptId?: st
 
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     UserService.getUsers("student")
@@ -166,6 +168,74 @@ const StudentProgress = ({ deptId, backPath = "/admin/settings" }: { deptId?: st
     }
   };
 
+  const generateReport = async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const scope = deptId
+        ? students
+        : (students.filter((s) => s.department && (s.department._id ?? s.department)));
+      const results = await Promise.allSettled(
+        scope.map((s) => ClassService.getStudentProgress(s._id)),
+      );
+
+      const rows: any[][] = [
+        ["S.No", "Special ID", "Name", "Program", "Class", "Session", "Present", "Absent", "Leave", "Total", "Attendance %"],
+      ];
+
+      results.forEach((res, i) => {
+        const s = scope[i];
+        const label = `${s.name ?? ""} ${s.lastName ?? ""}`.trim();
+        if (res.status !== "fulfilled" || !res.value?.profile || !res.value?.attendance) {
+          rows.push([
+            i + 1,
+            s.specialId ?? "—",
+            label,
+            categoryLabel(s.category),
+            s.class ?? "—",
+            s.session ?? "—",
+            0,
+            0,
+            0,
+            0,
+            0,
+          ]);
+          return;
+        }
+        const a = res.value.attendance;
+        rows.push([
+          i + 1,
+          res.value.profile?.specialId ?? s.specialId ?? "—",
+          `${res.value.profile?.name ?? ""} ${res.value.profile?.lastName ?? ""}`.trim() || label,
+          categoryLabel(res.value.profile?.category),
+          res.value.profile?.class ?? "—",
+          res.value.profile?.session ?? "—",
+          a.present ?? 0,
+          a.absent ?? 0,
+          a.leave ?? 0,
+          a.total ?? 0,
+          `${a.percentage ?? 0}`,
+        ]);
+      });
+
+      const csv = rows
+        .map((row) => row.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `student-progress-report-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Report downloaded");
+    } catch {
+      toast.error("Could not generate report");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const p = progress?.profile;
   const a = progress?.attendance;
   const status = p ? statusMeta(p) : null;
@@ -205,6 +275,18 @@ const StudentProgress = ({ deptId, backPath = "/admin/settings" }: { deptId?: st
         ) : (
           loadedCount(a)
         )}
+        <button
+          onClick={generateReport}
+          disabled={generating}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-primary shadow-sm transition-colors hover:bg-secondary disabled:opacity-60"
+        >
+          {generating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <FileDown className="h-4 w-4" />
+          )}
+          Generate Report
+        </button>
       </div>
 
       {/* Search */}

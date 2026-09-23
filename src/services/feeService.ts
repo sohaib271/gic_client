@@ -115,6 +115,27 @@ class FeeService {
     return data;
   }
 
+  // Department-wide fee view (HOD / admin) - same as mobile "Department Fees"
+  static async getDepartmentStudentsFee(params: {
+    departmentId: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) {
+    const query = new URLSearchParams();
+    query.set("departmentId", params.departmentId);
+    if (params.page) query.set("page", String(params.page));
+    if (params.limit) query.set("limit", String(params.limit));
+    if (params.search) query.set("search", params.search);
+
+    const res = await fetch(`${API}/fee/departments-students-fee?${query.toString()}`, {
+      method: "GET",
+      headers: this.authHeaders(),
+      credentials: "include",
+    });
+    return res.json();
+  }
+
   // Delete fee record
   static async deleteFeeRecord(id: string) {
     const res = await fetch(`${API}/fee/records/${id}`, {
