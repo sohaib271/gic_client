@@ -41,6 +41,7 @@ const HodStudents = () => {
   const user = useSelector((state: any) => state?.user.user);
   const { data: users, isLoading, refetch } = useUsers("student");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [detail, setDetail] = useState<any | null>(null);
   const [attendanceFor, setAttendanceFor] = useState<any | null>(null);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
@@ -65,9 +66,11 @@ const HodStudents = () => {
 
   const filtered = deptStudents.filter(
     (s: any) =>
-      s?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      s?.specialId?.toLowerCase().includes(search.toLowerCase()) ||
-      s?.lastName?.toLowerCase().includes(search.toLowerCase()),
+      (statusFilter === "all" ||
+        (statusFilter === "active" ? s?.isActive !== false : s?.isActive === false)) &&
+      (s?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        s?.specialId?.toLowerCase().includes(search.toLowerCase()) ||
+        s?.lastName?.toLowerCase().includes(search.toLowerCase())),
   );
 
   const set =
@@ -232,6 +235,15 @@ const HodStudents = () => {
           <span className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs sm:text-sm font-semibold text-primary">
             Total: {filtered.length}
           </span>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
+            className="rounded-lg border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring w-24"
+          >
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
           <Button size="sm" variant="outline" onClick={generateReport} className="gap-1.5">
             <FileDown className="h-4 w-4" /> Generate Report
           </Button>

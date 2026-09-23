@@ -299,10 +299,10 @@ const HodFaculty = () => {
                 </td>
                 <td className="p-3 sm:p-4">
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setDetail(m)}
-                      className="gap-1.5 text-primary hover:text-primary text-xs sm:text-sm">
-                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> View
-                    </Button>
+<Button variant="ghost" size="sm" onClick={() => setDetail(m)}
+  className="gap-1.5 text-primary hover:text-primary hover:bg-primary/10 text-xs sm:text-sm">
+  <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> View
+</Button>
                     <Button
                       variant="outline"
                       size="sm"

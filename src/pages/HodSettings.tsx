@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { TrendingUp, Shield, Wallet, ChevronRight } from "lucide-react";
+import { TrendingUp, Shield, Wallet, CalendarCheck, ChevronRight } from "lucide-react";
 import { useSelector } from "react-redux";
 
 const HodSettings = () => {
@@ -23,6 +23,14 @@ const HodSettings = () => {
       iconColor: "text-teal-600",
       onClick: () => navigate("/professor/settings/department-fee"),
       sub: `Fee overview of every student${user?.department?.code ? ` in ${user.department.code}` : " in your department"}`,
+    },
+    {
+      label: "Today's Student Attendance",
+      icon: CalendarCheck,
+      iconBg: "bg-green-50",
+      iconColor: "text-green-600",
+      onClick: () => navigate("/professor/settings/today-attendance"),
+      sub: "Today's attendance status of students.",
     },
     {
       label: "Security & Account",
