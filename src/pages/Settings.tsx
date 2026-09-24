@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CalendarClock, Settings2, Megaphone, ClipboardList, Users, ChevronRight, BellRing, Shield } from "lucide-react";
+import { CalendarClock, Settings2, Megaphone, ClipboardList, Users, ChevronRight, Shield } from "lucide-react";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -45,14 +45,6 @@ const Settings = () => {
       iconColor: "text-emerald-600",
       onClick: () => navigate("/admin/active-users"),
       sub: "See who logged in today with last login time",
-    },
-    {
-      label: "Announcements",
-      icon: BellRing,
-      iconBg: "bg-sky-50",
-      iconColor: "text-sky-600",
-      onClick: () => navigate("/admin/announcements"),
-      sub: "Publish announcements to classes with push notifications",
     },
     {
       label: "Security & Account",
