@@ -85,6 +85,15 @@ const Announcements = () => {
       prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
     );
 
+  const selectAllClasses = () => {
+    const allNames = classList.map((c: any) => c.className).filter(Boolean);
+    setSelectedClasses((prev) =>
+      prev.length === allNames.length && allNames.every((n) => prev.includes(n))
+        ? []
+        : allNames,
+    );
+  };
+
   const load = async () => {
     setLoading(true);
     try {
@@ -245,6 +254,19 @@ const Announcements = () => {
                 </label>
 
                 <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={selectAllClasses}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      classList.length > 0 &&
+                      selectedClasses.length === classList.length
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/70"
+                    }`}
+                    title="Select all classes"
+                  >
+                    All
+                  </button>
                   {categories.map((c) => (
                     <button
                       key={c.key}
