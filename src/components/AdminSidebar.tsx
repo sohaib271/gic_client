@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, CalendarCheck, BookOpen, Trophy, Wallet, GraduationCap, LogOut, X, ChevronDown, School, Receipt, Settings } from "lucide-react";
+import { LayoutDashboard, Users, CalendarCheck, BookOpen, Trophy, Wallet, GraduationCap, LogOut, X, ChevronDown, School, Receipt, Settings, BellRing } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AuthService from "@/services/authService";
@@ -34,7 +34,6 @@ const navItems: NavItem[] = [
       { to: "/admin/students/bs-adp", label: "BS / ADP" },
     ],
   },
-  { to: "/admin/faculty", icon: GraduationCap, label: "Faculty" },
   {
     to: "/admin/classes",
     icon: School,
@@ -53,6 +52,8 @@ const navItems: NavItem[] = [
       { to: "/admin/fee/bs-adp", label: "BS / ADP" },
     ],
   },
+  { to: "/admin/faculty", icon: GraduationCap, label: "Faculty" },
+  { to: "/admin/announcements", icon: BellRing, label: "Announcements" },
   { to: "/admin/settings", icon: Settings, label: "Settings" },
   // {
   //   to: "/admin/attendance",
