@@ -53,8 +53,11 @@ const HodStudentProgress = lazy(() => import("./pages/HodStudentProgress"));
 const HodDepartmentFee = lazy(() => import("./pages/HodDepartmentFee"));
 const TodayAttendance = lazy(() => import("./pages/TodayAttendance"));
 const HodSecurity = lazy(() => import("./pages/HodSecurity"));
+const HodStudentLeaves = lazy(() => import("./pages/HodStudentLeaves"));
 const MidtermTests = lazy(() => import("./pages/MidtermTests"));
 const MidtermClassSchedule = lazy(() => import("./pages/MidtermClassSchedule"));
+const MidtermResults = lazy(() => import("./pages/MidtermResults"));
+const MidtermClassResults = lazy(() => import("./pages/MidtermClassResults"));
 const ProfessorDashboard = lazy(() => import("./pages/ProfessorDashboard"));
 const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
 const HodClasses = lazy(() => import("./pages/HodClasses"));
@@ -131,8 +134,11 @@ const App = () => (
                 <Route path="settings/student-progress" element={<HodStudentProgress />} />
                 <Route path="settings/department-fee" element={<HodDepartmentFee />} />
                 <Route path="settings/today-attendance" element={<TodayAttendance />} />
+                <Route path="settings/student-leaves" element={<HodStudentLeaves />} />
                 <Route path="settings/midterm-tests" element={<MidtermTests />} />
                 <Route path="settings/midterm-tests/:classId" element={<MidtermClassSchedule />} />
+                <Route path="settings/midterm-results" element={<MidtermResults />} />
+                <Route path="settings/midterm-results/:classId" element={<MidtermClassResults />} />
                 <Route path="settings/security" element={<HodSecurity />} />
               </Route>
               <Route path="*" element={<NotFound />} />

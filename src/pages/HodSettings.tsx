@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { TrendingUp, Shield, Wallet, CalendarCheck, ClipboardList, ChevronRight } from "lucide-react";
+import { TrendingUp, Shield, Wallet, CalendarCheck, CalendarClock, ClipboardList, Award, ChevronRight } from "lucide-react";
 import { useSelector } from "react-redux";
 
 const HodSettings = () => {
@@ -39,6 +39,22 @@ const HodSettings = () => {
       iconColor: "text-sky-600",
       onClick: () => navigate("/professor/settings/midterm-tests"),
       sub: "Midterm test schedules and results of students.",
+    },
+    {
+      label: "Midterm Results",
+      icon: Award,
+      iconBg: "bg-rose-50",
+      iconColor: "text-rose-600",
+      onClick: () => navigate("/professor/settings/midterm-results"),
+      sub: "Midterm test results and marks of students.",
+    },
+    {
+      label: "Student Leaves",
+      icon: CalendarClock,
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
+      onClick: () => navigate("/professor/settings/student-leaves"),
+      sub: `Approve or reject the leave applications${user?.department?.code ? ` of students in ${user.department.code}` : " of your students"}.`,
     },
     {
       label: "Security & Account",
