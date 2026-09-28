@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Search, ChevronDown, UserRound } from "lucide-react";
+import { Search, ChevronDown, UserRound, ArrowLeft } from "lucide-react";
 import classroomArt from "@/assets/classroom-art.jpg";
 import { useClasses } from "@/hooks/useClasses";
 
 const YEARS = Array.from({ length: 12 }, (_, i) => 2025 + i);
+const ALL_YEARS = "all";
 
 const MidtermTests = () => {
   const navigate = useNavigate();
@@ -25,25 +26,25 @@ const MidtermTests = () => {
 
   const yearOf = (session?: string) => (session || "").slice(0, 4);
 
-  // Default to the session year of the department's classes so the grid is never empty.
-  const [year, setYear] = useState(() => {
-    const current = String(new Date().getFullYear());
-    return YEARS.includes(Number(current)) ? current : "2026";
-  });
+  // Every session is listed by default; the year dropdown narrows the grid down.
+  const [year, setYear] = useState<string>(ALL_YEARS);
 
-  const effectiveYear = useMemo(() => {
-    if (deptClasses.some((c: any) => yearOf(c.session) === year)) return year;
-    return yearOf(deptClasses[0]?.session) || year;
-  }, [deptClasses, year]);
+  // Cover every session year present in the department, not just the default range.
+  const yearOptions = useMemo(() => {
+    const fromData = deptClasses
+      .map((c: any) => Number(yearOf(c.session)))
+      .filter((y: number) => Number.isFinite(y) && y > 0);
+    return Array.from(new Set([...YEARS, ...fromData])).sort((a, b) => a - b);
+  }, [deptClasses]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return deptClasses.filter((c: any) => {
-      if (yearOf(c.session) !== effectiveYear) return false;
+      if (year !== ALL_YEARS && yearOf(c.session) !== year) return false;
       if (!q) return true;
       return (c.className || "").toLowerCase().includes(q);
     });
-  }, [deptClasses, search, effectiveYear]);
+  }, [deptClasses, search, year]);
 
   return (
     <>
@@ -93,9 +94,16 @@ const MidtermTests = () => {
       `}</style>
 
       <div className="mtx-page">
+        <button
+          onClick={() => navigate("/professor/settings")}
+          className="mb-4 flex items-center gap-1 text-xs text-primary hover:underline"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Settings
+        </button>
+
         <div className="mtx-topbar">
           <div className="mtx-title">
-            <h2>Classes ({effectiveYear})</h2>
+            <h2>{year === ALL_YEARS ? "Classes" : `Classes (${year})`}</h2>
             <p>Manage and organize all your classes in one place.</p>
           </div>
 
@@ -111,11 +119,12 @@ const MidtermTests = () => {
             </label>
             <div className="mtx-control mtx-year">
               <select
-                value={effectiveYear}
+                value={year}
                 onChange={(e) => setYear(e.target.value)}
                 aria-label="Filter by session year"
               >
-                {YEARS.map((y) => (
+                <option value={ALL_YEARS}>All Years</option>
+                {yearOptions.map((y) => (
                   <option key={y} value={y}>
                     {y}
                   </option>
@@ -139,14 +148,14 @@ const MidtermTests = () => {
               <article
                 key={cls._id}
                 className="mtx-card"
-                onClick={() => navigate("/professor/department/classes")}
+                onClick={() => navigate(`/professor/settings/midterm-tests/${cls._id}`)}
               >
                 <div className="mtx-art">
                   <img src={classroomArt} alt={cls.className} />
                 </div>
                 <div className="mtx-meta">
                   <h3>{cls.className}</h3>
-                  <div className="mtx-year-label">{effectiveYear}</div>
+                  <div className="mtx-year-label">{yearOf(cls.session) || "—"}</div>
                 </div>
                 <div className="mtx-students">
                   <UserRound />
