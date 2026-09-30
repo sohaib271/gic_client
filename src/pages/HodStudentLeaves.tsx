@@ -168,6 +168,7 @@ const HodStudentLeaves = () => {
             Approve or reject the leave applications of your department&apos;s students.
           </p>
         </div>
+<<<<<<< HEAD
         <div className="flex items-center gap-3">
           {isFetching && !isLoading && (
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -183,6 +184,13 @@ const HodStudentLeaves = () => {
             Leave Types
           </Button>
         </div>
+=======
+        {isFetching && !isLoading && (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Refreshing
+          </span>
+        )}
+>>>>>>> ad5e647cf8509b3eba146be9fd0befb166f21371
       </motion.div>
 
       {loadError && (
