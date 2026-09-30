@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { TrendingUp, Shield, Wallet, CalendarCheck, CalendarClock, ClipboardList, Award, ChevronRight } from "lucide-react";
+import { TrendingUp, Shield, Wallet, CalendarCheck, CalendarClock, ClipboardList, Award, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { useSelector } from "react-redux";
 
 const HodSettings = () => {
@@ -55,6 +55,14 @@ const HodSettings = () => {
       iconColor: "text-amber-600",
       onClick: () => navigate("/professor/settings/student-leaves"),
       sub: `Approve or reject the leave applications${user?.department?.code ? ` of students in ${user.department.code}` : " of your students"}.`,
+    },
+    {
+      label: "App Setting",
+      icon: SlidersHorizontal,
+      iconBg: "bg-slate-50",
+      iconColor: "text-slate-600",
+      onClick: () => navigate("/professor/settings/app-setting"),
+      sub: "Allow or block students from applying for leave.",
     },
     {
       label: "Security & Account",

@@ -168,11 +168,21 @@ const HodStudentLeaves = () => {
             Approve or reject the leave applications of your department&apos;s students.
           </p>
         </div>
-        {isFetching && !isLoading && (
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Refreshing
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {isFetching && !isLoading && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Refreshing
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/professor/settings/leave-types")}
+          >
+            <CalendarClock className="mr-2 h-4 w-4" />
+            Leave Types
+          </Button>
+        </div>
       </motion.div>
 
       {loadError && (

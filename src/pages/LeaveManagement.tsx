@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import TableSkeleton from "@/components/TableSkeleton";
 import ConfirmDeleteModal from "@/components/ConfirmDelete";
 import LeaveTypeService from "@/services/leaveTypeService";
+import AppSettingService, { APP_SETTING_KEYS } from "@/services/appSettingService";
 import { toast } from "sonner";
 
 const formatDate = (value?: string) => {
@@ -24,7 +25,16 @@ const formatDate = (value?: string) => {
   }
 };
 
-const LeaveManagement = () => {
+interface LeaveManagementProps {
+  /**
+   * Where "Back to Settings" should go. The page is reused by the HOD layout,
+   * which is mounted under /professor, so the default admin path would send
+   * HODs into a route their role cannot access.
+   */
+  backTo?: string;
+}
+
+const LeaveManagement = ({ backTo = "/admin/settings" }: LeaveManagementProps) => {
   const navigate = useNavigate();
   const [leaveTypes, setLeaveTypes] = useState<Array<Record<string, any>>>([]);
   const [loading, setLoading] = useState(true);
@@ -54,11 +64,11 @@ const LeaveManagement = () => {
 
   const loadLeaveApplySetting = async () => {
     try {
-      const result = await LeaveTypeService.getLeaveApplicationsSetting();
+      const result = await AppSettingService.getAppSettings();
       if (result?.statusCode !== undefined && result?.statusCode >= 400) {
         toast.error(result?.message || "Failed to load leave application setting");
       } else {
-        setLeaveApplyEnabled(result?.value ?? true);
+        setLeaveApplyEnabled(result?.[APP_SETTING_KEYS.applyLeave] ?? true);
       }
     } catch {
       toast.error("Could not reach the server");
@@ -76,7 +86,7 @@ const LeaveManagement = () => {
     const previous = leaveApplyEnabled;
     setLeaveApplyEnabled(next);
     try {
-      const result = await LeaveTypeService.setLeaveApplicationsSetting(next);
+      const result = await AppSettingService.setAppSetting(APP_SETTING_KEYS.applyLeave, next);
       if (result?.statusCode !== undefined && result?.statusCode >= 400) {
         setLeaveApplyEnabled(previous);
         toast.error(result?.message || "Could not update setting");
@@ -142,7 +152,7 @@ const LeaveManagement = () => {
   return (
     <div>
       <button
-        onClick={() => navigate("/admin/settings")}
+        onClick={() => navigate(backTo)}
         className="mb-4 flex items-center gap-1 text-xs text-primary hover:underline"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Back to Settings

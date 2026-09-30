@@ -32,25 +32,6 @@ class LeaveTypeService {
     });
     return res.json();
   }
-
-  static async getLeaveApplicationsSetting() {
-    const res = await fetch(`${API}/settings/leave-applications`, {
-      method: "GET",
-      headers: this.headers(),
-      credentials: "include",
-    });
-    return res.json();
-  }
-
-  static async setLeaveApplicationsSetting(value: boolean) {
-    const res = await fetch(`${API}/settings/leave-applications`, {
-      method: "PATCH",
-      headers: this.headers(),
-      credentials: "include",
-      body: JSON.stringify({ value }),
-    });
-    return res.json();
-  }
 }
 
 export default LeaveTypeService;

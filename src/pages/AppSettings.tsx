@@ -8,7 +8,8 @@ import SettingsService from "@/services/settingsService";
 import { toast } from "sonner";
 
 const REMARKS_KEY = "remarks_notifications_enabled";
-const PUSH_SETTING_KEY = "push-notifications";
+/** Same key the backend reads in sendPushNotification and the HOD screen uses. */
+const PUSH_SETTING_KEY = "is_push_noti_enable";
 
 const AppSettings = () => {
   const navigate = useNavigate();

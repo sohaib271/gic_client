@@ -54,6 +54,7 @@ const HodDepartmentFee = lazy(() => import("./pages/HodDepartmentFee"));
 const TodayAttendance = lazy(() => import("./pages/TodayAttendance"));
 const HodSecurity = lazy(() => import("./pages/HodSecurity"));
 const HodStudentLeaves = lazy(() => import("./pages/HodStudentLeaves"));
+const HodAppSetting = lazy(() => import("./pages/HodAppSetting"));
 const MidtermTests = lazy(() => import("./pages/MidtermTests"));
 const MidtermClassSchedule = lazy(() => import("./pages/MidtermClassSchedule"));
 const MidtermResults = lazy(() => import("./pages/MidtermResults"));
@@ -135,6 +136,8 @@ const App = () => (
                 <Route path="settings/department-fee" element={<HodDepartmentFee />} />
                 <Route path="settings/today-attendance" element={<TodayAttendance />} />
                 <Route path="settings/student-leaves" element={<HodStudentLeaves />} />
+                <Route path="settings/leave-types" element={<LeaveManagement backTo="/professor/settings" />} />
+                <Route path="settings/app-setting" element={<HodAppSetting />} />
                 <Route path="settings/midterm-tests" element={<MidtermTests />} />
                 <Route path="settings/midterm-tests/:classId" element={<MidtermClassSchedule />} />
                 <Route path="settings/midterm-results" element={<MidtermResults />} />
