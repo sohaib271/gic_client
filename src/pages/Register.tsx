@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CheckCircle2, AlertCircle, Loader2, GraduationCap, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -365,12 +365,6 @@ const Register = () => {
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Already registered?{" "}
-          <Link to="/" className="text-primary hover:underline">
-            Go to login
-          </Link>
-        </p>
       </div>
     </div>
   );
