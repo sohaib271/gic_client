@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { UserCheck, UserX, Link2, Copy, Check, Ban, Clock } from "lucide-react";
+import { UserCheck, UserX, Link2, Copy, Check, Ban, Clock, ChevronDown, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import TableSkeleton from "@/components/TableSkeleton";
 import PaginationControls from "@/components/PaginationControls";
 import { useDepartments } from "@/hooks/useDepartments";
@@ -15,6 +22,34 @@ import { toast } from "sonner";
 const PAGE_SIZE = 25;
 
 type Tab = "pending" | "links";
+
+/** Label + value pair used throughout the View application modal. */
+const Detail = ({ label, value }: { label: string; value: ReactNode }) => (
+  <div className="min-w-0">
+    <p className="text-[11px] text-muted-foreground">{label}</p>
+    <p className="mt-0.5 break-words text-xs font-medium text-foreground sm:text-sm">
+      {value === null || value === undefined || value === "" ? "—" : value}
+    </p>
+  </div>
+);
+
+/** Section heading inside the View modal. */
+const DetailGroup = ({ title, children }: { title: string; children: ReactNode }) => (
+  <div>
+    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      {title}
+    </p>
+    <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+  </div>
+);
+
+/** Reads a CSV list the student typed into the free-text subjects field. */
+const subjectList = (raw?: string) =>
+  (raw ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(", ");
 
 /**
  * HOD/admin screen for the self-registration flow: generate shareable links
@@ -46,6 +81,8 @@ const PendingRegistrations = () => {
   const [copied, setCopied] = useState<string | null>(null);
   // Holds the link awaiting confirmation — revoke only runs once the HOD says yes.
   const [revoking, setRevoking] = useState<any | null>(null);
+  // Full application whose details are open in the View modal.
+  const [viewing, setViewing] = useState<any | null>(null);
   const [form, setForm] = useState({
     department: deptId,
     category: "",
@@ -281,17 +318,35 @@ const PendingRegistrations = () => {
                           {s.interMarks != null ? ` / ${s.interMarks}` : ""}
                         </td>
                         <td className="p-3">
-                          <div className="flex gap-1.5">
-                            <Button size="sm" variant="outline" disabled={reviewing === s._id}
-                              onClick={() => review(s._id, "approved")}
-                              className="gap-1 text-green-700 hover:text-green-800">
-                              <UserCheck className="h-3.5 w-3.5" /> Approve
+                          <div className="flex items-center gap-1.5">
+                            <Button size="sm" variant="outline"
+                              onClick={() => setViewing(s)}
+                              className="gap-1">
+                              <Eye className="h-3.5 w-3.5" /> View
                             </Button>
-                            <Button size="sm" variant="outline" disabled={reviewing === s._id}
-                              onClick={() => { setRejecting(s); setReason(""); }}
-                              className="gap-1 text-destructive">
-                              <UserX className="h-3.5 w-3.5" /> Reject
-                            </Button>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline" disabled={reviewing === s._id}
+                                  className="gap-1">
+                                  Action <ChevronDown className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-40">
+                                <DropdownMenuItem
+                                  disabled={reviewing === s._id}
+                                  onSelect={() => review(s._id, "approved")}
+                                  className="gap-2 text-green-700 focus:bg-green-600 focus:text-white">
+                                  <UserCheck className="h-3.5 w-3.5" /> Accept
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  disabled={reviewing === s._id}
+                                  onSelect={() => { setRejecting(s); setReason(""); }}
+                                  className="gap-2 text-destructive focus:bg-destructive focus:text-white">
+                                  <UserX className="h-3.5 w-3.5" /> Reject
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </td>
                       </motion.tr>
@@ -332,6 +387,86 @@ const PendingRegistrations = () => {
                   <Button variant="destructive"
                     onClick={() => review(rejecting._id, "rejected", reason.trim() || "Not accepted")}>
                     Reject
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* View — everything the student submitted */}
+          {viewing && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-foreground/50 p-4">
+              <div className="my-8 w-full max-w-2xl rounded-2xl bg-card p-6 shadow-modal">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="font-display text-lg font-bold text-foreground">
+                      {viewing.name} {viewing.lastName}
+                    </h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {viewing.specialId} · applied{" "}
+                      {viewing.createdAt
+                        ? new Date(viewing.createdAt).toLocaleString()
+                        : "—"}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setViewing(null)}>
+                    Close
+                  </Button>
+                </div>
+
+                <div className="mt-5 space-y-5">
+                  <DetailGroup title="Personal details">
+                    <Detail label="Full name" value={`${viewing.name ?? ""} ${viewing.lastName ?? ""}`.trim()} />
+                    <Detail label="Email" value={viewing.email} />
+                    <Detail label="CNIC" value={viewing.cnic} />
+                    <Detail label="Gender" value={viewing.gender} />
+                  </DetailGroup>
+
+                  <DetailGroup title="Contact">
+                    <Detail label="Phone" value={viewing.phone} />
+                    <Detail label="WhatsApp" value={viewing.whatsappNumber} />
+                    <Detail label="City" value={viewing.city} />
+                    <Detail label="Address" value={viewing.address} />
+                  </DetailGroup>
+
+                  <DetailGroup title="Academic">
+                    <Detail
+                      label="Department"
+                      value={
+                        viewing.department?.name
+                          ? `${viewing.department.name}${
+                              viewing.department.code ? ` (${viewing.department.code})` : ""
+                            }`
+                          : "—"
+                      }
+                    />
+                    <Detail label="Programme" value={viewing.category} />
+                    <Detail label="Class / Semester" value={viewing.class} />
+                    <Detail label="Session" value={viewing.session} />
+                    <Detail label="Roll No" value={viewing.rollNo} />
+                    <Detail label="Subjects" value={subjectList(viewing.subjects)} />
+                  </DetailGroup>
+
+                  <DetailGroup title="Marks & joining">
+                    <Detail label="Matric marks" value={viewing.matricMarks} />
+                    <Detail label="Inter marks" value={viewing.interMarks} />
+                    <Detail label="Date of joining" value={viewing.doj} />
+                    <Detail label="Role" value={viewing.role} />
+                  </DetailGroup>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4">
+                  <Button variant="outline" onClick={() => setViewing(null)}>
+                    Close
+                  </Button>
+                  <Button variant="outline"
+                    onClick={() => { setViewing(null); setRejecting(viewing); setReason(""); }}
+                    className="text-destructive">
+                    <UserX className="h-3.5 w-3.5" /> Reject
+                  </Button>
+                  <Button onClick={() => { setViewing(null); review(viewing._id, "approved"); }}
+                    className="bg-green-600 hover:bg-green-700">
+                    <UserCheck className="h-3.5 w-3.5" /> Accept
                   </Button>
                 </div>
               </div>
