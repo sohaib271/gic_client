@@ -33,6 +33,7 @@ const defaultForm = {
   department: "",
   city: "",
   session: "",
+  rollNo: "",
   category: "bs", // ✅ "bs" or "adp" — stored directly in DB
   semester: "I", // ✅ "I" to "VIII" — stored in DB as class field
   subjects: "",
@@ -194,6 +195,7 @@ const [deleting,     setDeleting]     = useState(false);
     setSaving(true);
 
     const payload = {
+      role: "student",
       name: form.name,
       lastName: form.lastName,
       email: form.email,
@@ -207,6 +209,7 @@ const [deleting,     setDeleting]     = useState(false);
       class: form.semester, // ✅ "I" to "VIII" → stored in DB class field
       department: form.department,
       session: form.session,
+      rollNo: Number(form.rollNo),
       matricMarks: Number(form.matricMarks),
       interMarks: Number(form.interMarks),
       shift: form.shift,
@@ -265,6 +268,7 @@ const [deleting,     setDeleting]     = useState(false);
     class:          form.semester,
     department:     form.department,
     session:        form.session,
+    rollNo:         form.rollNo ? Number(form.rollNo) : undefined,
     matricMarks:    Number(form.matricMarks),
     interMarks:     Number(form.interMarks),
     shift:          form.shift,
@@ -465,6 +469,7 @@ const [deleting,     setDeleting]     = useState(false);
                           department: s?.department?._id ?? "",
                           city: s?.city ?? "",
                           session: s?.session ?? "",
+                          rollNo: s?.rollNo?.toString() ?? "",
                           category: s?.category ?? "bs",
                           semester: s?.class ?? "I",
                           subjects: s?.subjects?.join(", ") ?? "",
@@ -703,6 +708,14 @@ const [deleting,     setDeleting]     = useState(false);
                       value={form.city}
                       onChange={set("city")}
                       placeholder="Lahore"
+                    />
+                  </Field>
+                  <Field label="Roll No">
+                    <Input
+                      type="number"
+                      value={form.rollNo}
+                      onChange={set("rollNo")}
+                      placeholder="1"
                     />
                   </Field>
 
