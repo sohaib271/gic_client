@@ -1,14 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-<<<<<<< HEAD
 import { TrendingUp, Shield, Wallet, CalendarCheck, CalendarClock, ClipboardList, Award, ChevronRight, SlidersHorizontal } from "lucide-react";
-=======
-<<<<<<< HEAD
-import { TrendingUp, Shield, Wallet, CalendarCheck, CalendarClock, ClipboardList, Award, ChevronRight, SlidersHorizontal } from "lucide-react";
-=======
-import { TrendingUp, Shield, Wallet, CalendarCheck, CalendarClock, ClipboardList, Award, ChevronRight } from "lucide-react";
->>>>>>> ad5e647cf8509b3eba146be9fd0befb166f21371
->>>>>>> aad7800358c0fa6533e4ba18b24c14060ee8fd4a
 import { useSelector } from "react-redux";
 
 const HodSettings = () => {
@@ -65,10 +57,6 @@ const HodSettings = () => {
       sub: `Approve or reject the leave applications${user?.department?.code ? ` of students in ${user.department.code}` : " of your students"}.`,
     },
     {
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> aad7800358c0fa6533e4ba18b24c14060ee8fd4a
       label: "App Setting",
       icon: SlidersHorizontal,
       iconBg: "bg-slate-50",
@@ -77,11 +65,6 @@ const HodSettings = () => {
       sub: "Allow or block students from applying for leave.",
     },
     {
-<<<<<<< HEAD
-=======
-=======
->>>>>>> ad5e647cf8509b3eba146be9fd0befb166f21371
->>>>>>> aad7800358c0fa6533e4ba18b24c14060ee8fd4a
       label: "Security & Account",
       icon: Shield,
       iconBg: "bg-violet-50",
