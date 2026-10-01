@@ -44,6 +44,8 @@ const PendingRegistrations = () => {
   const [links, setLinks] = useState<any[]>([]);
   const [linksLoading, setLinksLoading] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  // Holds the link awaiting confirmation — revoke only runs once the HOD says yes.
+  const [revoking, setRevoking] = useState<any | null>(null);
   const [form, setForm] = useState({
     department: deptId,
     category: "",
@@ -176,6 +178,7 @@ const PendingRegistrations = () => {
         return;
       }
       toast.success("Link revoked");
+      setRevoking(null);
       loadLinks();
     } catch {
       toast.error("Network error, please try again");
@@ -460,7 +463,7 @@ const PendingRegistrations = () => {
                                 : <Copy className="h-3.5 w-3.5" />}
                             </Button>
                             {!closed && (
-                              <Button size="sm" variant="outline" onClick={() => revoke(l._id)}
+                              <Button size="sm" variant="outline" onClick={() => setRevoking(l)}
                                 className="gap-1 text-destructive">
                                 <Ban className="h-3.5 w-3.5" /> Revoke
                               </Button>
@@ -472,6 +475,45 @@ const PendingRegistrations = () => {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Revoke confirmation — yes/no before the link is actually killed */}
+          {revoking && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4">
+              <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-modal">
+                <h2 className="font-display text-lg font-bold text-foreground">
+                  Revoke this registration link?
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Anyone holding this link will no longer be able to open the registration
+                  form. Students who already submitted are not affected — review them in the
+                  Pending tab.
+                </p>
+
+                <div className="mt-4 rounded-lg bg-secondary/40 px-3 py-2">
+                  <p className="truncate font-mono text-[11px] text-foreground">
+                    {`${window.location.origin}/register/${revoking.token}`}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {revoking.department?.code ?? revoking.department?.name ?? "—"}
+                    {" · "}
+                    {revoking.category ?? "Any"}
+                    {revoking.class ? ` · Class ${revoking.class}` : ""}
+                    {" · "}
+                    {revoking.usedCount}/{revoking.maxUses} used
+                  </p>
+                </div>
+
+                <div className="mt-4 flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setRevoking(null)}>
+                    No, keep it
+                  </Button>
+                  <Button variant="destructive" onClick={() => revoke(revoking._id)}>
+                    Yes, revoke
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
