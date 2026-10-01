@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import TableSkeleton from "@/components/TableSkeleton";
@@ -43,13 +44,23 @@ const DetailGroup = ({ title, children }: { title: string; children: ReactNode }
   </div>
 );
 
-/** Reads a CSV list the student typed into the free-text subjects field. */
-const subjectList = (raw?: string) =>
-  (raw ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .join(", ");
+/**
+ * Renders the student's subjects for the View modal. The schema stores these
+ * as `string[]` (the backend already splits the comma-separated input), but
+ * older records and some admin-created students may still hold a raw string —
+ * so handle both shapes rather than calling `.split` on an array.
+ */
+const subjectList = (raw?: string | string[] | null) => {
+  if (Array.isArray(raw)) return raw.filter(Boolean).join(", ");
+  if (typeof raw === "string") {
+    return raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(", ");
+  }
+  return "";
+};
 
 /**
  * HOD/admin screen for the self-registration flow: generate shareable links
@@ -318,36 +329,35 @@ const PendingRegistrations = () => {
                           {s.interMarks != null ? ` / ${s.interMarks}` : ""}
                         </td>
                         <td className="p-3">
-                          <div className="flex items-center gap-1.5">
-                            <Button size="sm" variant="outline"
-                              onClick={() => setViewing(s)}
-                              className="gap-1">
-                              <Eye className="h-3.5 w-3.5" /> View
-                            </Button>
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="outline" disabled={reviewing === s._id}
-                                  className="gap-1">
-                                  Action <ChevronDown className="h-3.5 w-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-40">
-                                <DropdownMenuItem
-                                  disabled={reviewing === s._id}
-                                  onSelect={() => review(s._id, "approved")}
-                                  className="gap-2 text-green-700 focus:bg-green-600 focus:text-white">
-                                  <UserCheck className="h-3.5 w-3.5" /> Accept
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  disabled={reviewing === s._id}
-                                  onSelect={() => { setRejecting(s); setReason(""); }}
-                                  className="gap-2 text-destructive focus:bg-destructive focus:text-white">
-                                  <UserX className="h-3.5 w-3.5" /> Reject
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline" disabled={reviewing === s._id}
+                                className="gap-1">
+                                Action <ChevronDown className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem
+                                disabled={reviewing === s._id}
+                                onSelect={() => setViewing(s)}
+                                className="gap-2">
+                                <Eye className="h-3.5 w-3.5" /> View
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                disabled={reviewing === s._id}
+                                onSelect={() => review(s._id, "approved")}
+                                className="gap-2 text-green-700 focus:bg-green-600 focus:text-white">
+                                <UserCheck className="h-3.5 w-3.5" /> Accept
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                disabled={reviewing === s._id}
+                                onSelect={() => { setRejecting(s); setReason(""); }}
+                                className="gap-2 text-destructive focus:bg-destructive focus:text-white">
+                                <UserX className="h-3.5 w-3.5" /> Reject
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </motion.tr>
                     ))}
