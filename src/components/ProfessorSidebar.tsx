@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LayoutDashboard, School, LogOut, X, GraduationCap, Users, Building2, Briefcase, Bell, Settings, UserCircle2 } from "lucide-react";
+import { LayoutDashboard, School, LogOut, X, GraduationCap, Users, Building2, Briefcase, Bell, Settings, UserCircle2, UserPlus } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AuthService from "@/services/authService";
@@ -25,6 +25,7 @@ const hodNavItems = [
   { to: "/professor/department/classes", icon: Building2, label: "Department Classes" },
   { to: "/professor/department/faculty", icon: Briefcase, label: "Department Faculty" },
   { to: "/professor/department/students", icon: Users, label: "Department Students" },
+  { to: "/professor/department/student-registration", icon: UserPlus, label: "Student Registration" },
   { to: "/professor/profile", icon: UserCircle2, label: "Profile" },
   { to: "/professor/settings", icon: Settings, label: "Settings" },
 ];

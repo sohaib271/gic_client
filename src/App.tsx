@@ -12,6 +12,10 @@ import { persistor, store } from "./store/store";
 // Login is the entry route — keep eager so first paint isn't delayed by a chunk fetch.
 import Login from "./pages/Login";
 
+// Public self-registration. Also eager: a student arriving from a shared link
+// should see the form immediately, and this route needs no auth.
+import Register from "./pages/Register";
+
 // Layouts and all inner pages are code-split to shrink the initial bundle.
 const AdminLayout = lazy(() => import("./components/AdminLayout"));
 const ProfessorLayout = lazy(() => import("./components/ProfessorLayout"));
@@ -54,6 +58,7 @@ const HodDepartmentFee = lazy(() => import("./pages/HodDepartmentFee"));
 const TodayAttendance = lazy(() => import("./pages/TodayAttendance"));
 const HodSecurity = lazy(() => import("./pages/HodSecurity"));
 const HodStudentLeaves = lazy(() => import("./pages/HodStudentLeaves"));
+const PendingRegistrations = lazy(() => import("./pages/PendingRegistrations"));
 const HodAppSetting = lazy(() => import("./pages/HodAppSetting"));
 const MidtermTests = lazy(() => import("./pages/MidtermTests"));
 const MidtermClassSchedule = lazy(() => import("./pages/MidtermClassSchedule"));
@@ -88,6 +93,7 @@ const App = () => (
             <Suspense fallback={<LoadingScreen />}>
             <Routes>
               <Route path="/" element={<Login />} />
+              <Route path="/register/:token" element={<Register />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
@@ -119,6 +125,7 @@ const App = () => (
                 <Route path="send-alert" element={<SendAlert />} />
                 <Route path="survey" element={<Survey />} />
                 <Route path="active-users" element={<ActiveUsers />} />
+                <Route path="student-registration" element={<PendingRegistrations />} />
                 <Route path="announcements" element={<Announcements />} />
                 <Route path="security" element={<Security />} />
                 <Route path="student-progress" element={<StudentProgress />} />
@@ -130,6 +137,7 @@ const App = () => (
                 <Route path="department/classes" element={<HodClasses />} />
                 <Route path="department/faculty" element={<HodFaculty />} />
                 <Route path="department/students" element={<HodStudents />} />
+                <Route path="department/student-registration" element={<PendingRegistrations />} />
                 <Route path="profile" element={<HodProfile />} />
                 <Route path="settings" element={<HodSettings />} />
                 <Route path="settings/student-progress" element={<HodStudentProgress />} />
