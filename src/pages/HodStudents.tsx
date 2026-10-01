@@ -97,7 +97,6 @@ const HodStudents = () => {
     );
     if (commonError) return commonError;
     if (!deptId) return "Your department is missing from your account";
-    if (!form.rollNo || Number.isNaN(Number(form.rollNo))) return "Valid roll no is required";
     if (category !== "intermediate" && (!form.interMarks || Number.isNaN(Number(form.interMarks)))) {
       return "Valid inter marks are required";
     }

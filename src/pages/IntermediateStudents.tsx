@@ -33,6 +33,7 @@ const defaultForm = {
   department: "",
   city: "",
   session: "",
+  rollNo: "",
   class: "I",
   subjects: "",
   matricMarks: "",
@@ -170,6 +171,7 @@ const handleEditStudent = async () => {
     class:       form.class,
     department:  form.department,
     session:     form.session,
+    rollNo:      form.rollNo ? Number(form.rollNo) : undefined,
     matricMarks: Number(form.matricMarks),
     subjects:    form.subjects.split(",").map((s) => s.trim()).filter(Boolean),
     ...(form.whatsappNumber && { whatsappNumber: form.whatsappNumber }),
@@ -213,6 +215,7 @@ const handleEditStudent = async () => {
     setSaving(true);
 
     const payload = {
+      role: "student",
       name: form.name,
       lastName: form.lastName,
       email: form.email,
@@ -226,6 +229,7 @@ const handleEditStudent = async () => {
       class: form.class,
       department: form.department,
       session: form.session,
+      rollNo: Number(form.rollNo),
       matricMarks: Number(form.matricMarks),
       subjects: form.subjects.split(",").map((s) => s.trim()).filter(Boolean),
       ...(form.whatsappNumber && { whatsappNumber: form.whatsappNumber }),
@@ -376,6 +380,7 @@ const handleEditStudent = async () => {
       department:     s?.department?._id ?? "",
       city:           s?.city ?? "",
       session:        s?.session ?? "",
+      rollNo:         s?.rollNo?.toString() ?? "",
       class:          s?.class ?? "I",
       subjects:       s?.subjects?.join(", ") ?? "",
       matricMarks:    s?.matricMarks?.toString() ?? "",
@@ -525,6 +530,9 @@ const handleEditStudent = async () => {
                   </Field>
                   <Field label="City">
                     <Input value={form.city} onChange={set("city")} placeholder="Lahore" />
+                  </Field>
+                  <Field label="Roll No">
+                    <Input type="number" value={form.rollNo} onChange={set("rollNo")} placeholder="1" />
                   </Field>
                   <Field label="Class">
                     <select className={selectClass} value={form.class} onChange={set("class")}>
