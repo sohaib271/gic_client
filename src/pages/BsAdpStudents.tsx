@@ -799,7 +799,7 @@ const [deleting,     setDeleting]     = useState(false);
                       placeholder="850"
                     />
                   </Field>
-                  <Field label="Inter Marks (out of 1100)">
+                  <Field label="Inter Marks (out of 1200)">
                     <Input
                       type="number"
                       min={0}

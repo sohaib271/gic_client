@@ -295,7 +295,7 @@ const Register = () => {
               />
             </Field>
             {info.requiresInterMarks && (
-              <Field label="Inter Marks (out of 1100)">
+              <Field label="Inter Marks (out of 1200)">
                 <Input
                   type="number"
                   min={0}
