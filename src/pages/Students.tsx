@@ -2,12 +2,16 @@ import { motion } from "framer-motion";
 import { Users, GraduationCap, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useUsers } from "@/hooks/useUsers";
+import { getStudentProgram } from "@/lib/studentProgram";
 
 const Students = () => {
   const navigate = useNavigate();
   const { data: students = [] } = useUsers("student");
-  const interCount = students.filter((s: any) => s.category === "intermediate").length;
-  const bsCount = students.filter((s: any) => s.category === "bs" || s.category === "adp").length;
+  const interCount = students.filter((s: any) => getStudentProgram(s) === "intermediate").length;
+  const bsCount = students.filter((s: any) => {
+    const program = getStudentProgram(s);
+    return program === "bs" || program === "adp";
+  }).length;
 
   const cards = [
     {

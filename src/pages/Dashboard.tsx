@@ -27,6 +27,7 @@ import DepartmentService from "@/services/departmentService";
 import TeacherAttendanceService from "@/services/teacherAttendanceService";
 import PaginationControls from "@/components/PaginationControls";
 import UserAvatar from "@/components/UserAvatar";
+import { getStudentProgram } from "@/lib/studentProgram";
 import { usePagination } from "@/hooks/usePagination";
 
 const STUDENTS_PER_PAGE = 10;
@@ -113,7 +114,7 @@ const [showTeacherHistory,  setShowTeacherHistory]  = useState(false);
   // ── Filtered students for panel
   const filteredStudents = useMemo(() => {
     let list = students;
-    if (studentFilter !== "all") list = list.filter((s: any) => s.category === studentFilter);
+    if (studentFilter !== "all") list = list.filter((s: any) => getStudentProgram(s) === studentFilter);
     if (studentSearch.trim()) {
       const q = studentSearch.toLowerCase();
       list = list.filter((s: any) =>
@@ -545,7 +546,7 @@ const facultyPagination = usePagination(filteredProfessors, 10);
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-secondary/40">
-                        {["#","ID","Name","Category","Class","Session"].map((h) => (
+                        {["#","Photo","ID","Name","Category","Class","Session"].map((h) => (
                           <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{h}</th>
                         ))}
                       </tr>
@@ -554,11 +555,14 @@ const facultyPagination = usePagination(filteredProfessors, 10);
                       {paginatedStudents.map((s: any, i: number) => (
                         <tr key={s._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
                           <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * STUDENTS_PER_PAGE + i + 1}</td>
+                          <td className="px-4 py-3">
+                            <UserAvatar image={s.image} name={s.name} lastName={s.lastName} className="h-8 w-8" />
+                          </td>
                           <td className="px-4 py-3 font-medium text-foreground">{s.specialId}</td>
                           <td className="px-4 py-3 text-foreground">{s.name} {s.lastName}</td>
                           <td className="px-4 py-3">
                             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary uppercase">
-                              {s.category ?? "—"}
+                              {getStudentProgram(s) ?? "—"}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground">{s.class ?? "—"}</td>
@@ -566,7 +570,7 @@ const facultyPagination = usePagination(filteredProfessors, 10);
                         </tr>
                       ))}
                       {paginatedStudents.length === 0 && (
-                        <tr><td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">No students found.</td></tr>
+                        <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">No students found.</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -1364,9 +1368,9 @@ const facultyPagination = usePagination(filteredProfessors, 10);
           {/* Cards Row */}
           <div className="grid grid-cols-3 gap-3 px-5 py-4">
             {[
-              { label: "INTERMEDIATE", subLabel: "Students", count: students.filter((s: any) => s.category === "intermediate").length },
-              { label: "BS Students", subLabel: "", count: students.filter((s: any) => s.category === "bs").length },
-              { label: "ADP Students", subLabel: "", count: students.filter((s: any) => s.category === "adp").length },
+              { label: "INTERMEDIATE", subLabel: "Students", count: students.filter((s: any) => getStudentProgram(s) === "intermediate").length },
+              { label: "BS Students", subLabel: "", count: students.filter((s: any) => getStudentProgram(s) === "bs").length },
+              { label: "ADP Students", subLabel: "", count: students.filter((s: any) => getStudentProgram(s) === "adp").length },
             ].map((item) => (
               <div
                 key={item.label}

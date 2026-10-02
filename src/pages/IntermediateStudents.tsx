@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Trash2, X, Eye, ArrowRight, Upload, Receipt } from "lucide-react";
 import ConfirmDeleteModal from "@/components/ConfirmDelete"
 import UserAvatar from "@/components/UserAvatar";
+import { isIntermediateStudent } from "@/lib/studentProgram";
 import TableSkeleton from "@/components/TableSkeleton";
 import StudentFeeDetailModal from "@/components/StudentFeeDetailModal";
 import ActiveUserToggle from "@/components/ActiveUserToggle";
@@ -53,7 +54,7 @@ const IntermediateStudents = () => {
   );
   // ✅ Derived — no separate state needed, always in sync with API data
   const intermediateUsers = useMemo(() =>
-    users?.filter((u: any) => u?.category === "intermediate"),
+    users?.filter((u: any) => u?.role === "student" && isIntermediateStudent(u)),
     [users]
   );
   const [search, setSearch] = useState("");

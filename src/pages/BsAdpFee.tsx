@@ -12,6 +12,7 @@ import FeeRecordsViewModal from "@/components/FeeRecordsViewModal";
 import { useSelector } from "react-redux";
 import FeeService from "@/services/feeService";
 import ClassService from "@/services/classService";
+import { isBsAdpStudent, getStudentProgram } from "@/lib/studentProgram";
 
 type View = "list" | "classDetail";
 
@@ -25,7 +26,7 @@ const BsAdpFee = () => {
     if (!allUsers) return { bsStudents: [] };
     return {
       bsStudents: allUsers.filter(
-        (u: any) => u.role === "student" && (u.category === "bs" || u.category === "adp"),
+        (u: any) => u.role === "student" && isBsAdpStudent(u),
       ),
     };
   }, [allUsers]);
@@ -492,11 +493,11 @@ const BsAdpFee = () => {
                   <td className="p-4 text-sm">{s?.name} {s?.lastName}</td>
                   <td className="p-4">
                     <span className={`rounded-md px-2 py-1 text-xs font-semibold uppercase ${
-                      s?.category === "bs" 
-                        ? "bg-blue-100 text-blue-800" 
+                      getStudentProgram(s) === "bs"
+                        ? "bg-blue-100 text-blue-800"
                         : "bg-purple-100 text-purple-800"
                     }`}>
-                      {s?.category || "BS"}
+                      {getStudentProgram(s) ?? "BS"}
                     </span>
                   </td>
                   <td className="p-4">

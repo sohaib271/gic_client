@@ -15,6 +15,7 @@ import { getCommonStudentValidationError } from "@/lib/studentValidation";
 import { SEMESTERS } from "@/lib/academic";
 import ConfirmDeleteModal from "@/components/ConfirmDelete";
 import UserAvatar from "@/components/UserAvatar";
+import { getStudentProgram, isBsAdpStudent } from "@/lib/studentProgram";
 import {
   StudentFormField as Field,
 } from "@/components/students/StudentFormPrimitives";
@@ -61,12 +62,9 @@ const BsAdpStudents = () => {
     [departments],
   );
 
-  // ✅ category is "bs" or "adp" in DB
+  // ✅ Resolved from the student's own category, falling back to the department's
   const bsAdpUsers = useMemo(
-    () =>
-      (users || []).filter(
-        (u: any) => u?.category === "bs" || u?.category === "adp",
-      ),
+    () => (users || []).filter((u: any) => u?.role === "student" && isBsAdpStudent(u)),
     [users],
   );
   const [search, setSearch] = useState("");
@@ -151,8 +149,9 @@ const [deleting,     setDeleting]     = useState(false);
   const filtered = allStudents.filter(
     (s) =>
       (s?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        s?.lastName?.toLowerCase().includes(search.toLowerCase()) ||
         s?.specialId?.toLowerCase().includes(search.toLowerCase())) &&
-      s?.category === selectedProgram,
+      getStudentProgram(s) === selectedProgram,
   );
 
   const displayed = showAll ? filtered : filtered.slice(0, PREVIEW_COUNT);
@@ -434,8 +433,8 @@ const [deleting,     setDeleting]     = useState(false);
                 <td className="p-4 text-sm text-muted-foreground">
                   {s?.lastName}
                 </td>
-                {/* ✅ category holds "bs" or "adp" */}
-                <td className="p-4 text-sm uppercase">{s?.category ?? "—"}</td>
+                {/* ✅ resolved program (falls back to department) */}
+                <td className="p-4 text-sm uppercase">{getStudentProgram(s) ?? "—"}</td>
                 {/* ✅ class holds "I"-"VIII", look up label for display */}
                 <td className="p-4 text-sm">
                   {SEMESTERS.find((sem) => sem.value === s?.class)?.label ??

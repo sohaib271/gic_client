@@ -12,6 +12,7 @@ import FeeRecordsViewModal from "@/components/FeeRecordsViewModal";
 import { useSelector } from "react-redux";
 import FeeService from "@/services/feeService";
 import ClassService from "@/services/classService";
+import { isIntermediateStudent } from "@/lib/studentProgram";
 
 type View = "list" | "classDetail";
 
@@ -25,7 +26,7 @@ const IntermediateFee = () => {
     if (!allUsers) return { interStudents: [] };
     return {
       interStudents: allUsers.filter(
-        (u: any) => u.role === "student" && u.category === "intermediate",
+        (u: any) => u.role === "student" && isIntermediateStudent(u),
       ),
     };
   }, [allUsers]);
