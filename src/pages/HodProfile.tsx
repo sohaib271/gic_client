@@ -17,6 +17,7 @@ import {
 import { useSelector } from "react-redux";
 import { useDepartments } from "@/hooks/useDepartments";
 import UserService from "@/services/userService";
+import UserAvatar from "@/components/UserAvatar";
 import { toast } from "sonner";
 
 const inputCls =
@@ -70,6 +71,7 @@ const HodProfile = () => {
   });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,6 +80,7 @@ const HodProfile = () => {
       .then((u: any) => {
         if (u?._id) {
           setUserId(u._id);
+          setProfileImage(u?.image ?? null);
           setForm({
             name: u.name ?? "",
             lastName: u.lastName ?? "",
@@ -126,9 +129,6 @@ const HodProfile = () => {
     (typeof dept === "object" ? dept?.code : undefined) ??
     "—";
   const fullName = `${form.name} ${form.lastName}`.trim() || "HOD";
-  const initials = form.name
-    ? `${form.name[0] ?? ""}${form.lastName?.[0] ?? ""}`.toUpperCase()
-    : "H";
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -166,17 +166,13 @@ const HodProfile = () => {
 
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
           <div className="relative">
-            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/20 font-display text-3xl font-bold text-white shadow-md backdrop-blur">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt="profile"
-                  className="h-full w-full rounded-full object-cover"
-                />
-              ) : (
-                initials
-              )}
-            </div>
+            <UserAvatar
+              image={avatarUrl ?? profileImage ?? reduxUser?.image}
+              name={form.name}
+              lastName={form.lastName}
+              className="h-20 w-20 border-2 border-white/40 font-display text-3xl font-bold text-white shadow-md"
+              fallbackClassName="bg-white/20 text-white backdrop-blur"
+            />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
