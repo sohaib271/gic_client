@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { getCommonStudentValidationError } from "@/lib/studentValidation";
 import { SEMESTERS } from "@/lib/academic";
 import ConfirmDeleteModal from "@/components/ConfirmDelete";
+import UserAvatar from "@/components/UserAvatar";
 import {
   StudentFormField as Field,
 } from "@/components/students/StudentFormPrimitives";
@@ -395,6 +396,7 @@ const [deleting,     setDeleting]     = useState(false);
             <tr className="border-b border-border">
               {[
                 "S.No",
+                "Photo",
                 "Student ID",
                 "Name",
                 "Last Name",
@@ -423,6 +425,9 @@ const [deleting,     setDeleting]     = useState(false);
               >
                 <td className="p-4 text-sm">
                   {String(i + 1).padStart(2, "0")}
+                </td>
+                <td className="p-4">
+                  <UserAvatar image={s?.image} name={s?.name} lastName={s?.lastName} className="h-10 w-10" />
                 </td>
                 <td className="p-4 text-sm font-medium">{s?.specialId}</td>
                 <td className="p-4 text-sm">{s?.name}</td>
@@ -497,7 +502,7 @@ const [deleting,     setDeleting]     = useState(false);
             {displayed?.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="p-8 text-center text-sm text-muted-foreground"
                 >
                   No students found

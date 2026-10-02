@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useTeacherSchedule } from "@/hooks/useTeacherSchedule";
 import PaginationControls from "@/components/PaginationControls";
 import { usePagination } from "@/hooks/usePagination";
+import UserAvatar from "@/components/UserAvatar";
 
 interface FacultyDetailViewProps {
   faculty: any;
@@ -314,9 +315,13 @@ const FacultyDetailView = ({ faculty, type, onBack, autoShowSchedule = false }: 
       <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
         {/* Profile header */}
         <div className="flex flex-col sm:flex-row items-center gap-4 px-4 sm:px-6 py-5 border-b border-border bg-secondary/30">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground shrink-0">
-            {faculty?.name?.[0]}{faculty?.lastName?.[0]}
-          </div>
+          <UserAvatar
+            image={faculty?.image}
+            name={faculty?.name}
+            lastName={faculty?.lastName}
+            className="h-16 w-16 text-xl"
+            fallbackClassName="bg-primary text-xl font-bold text-primary-foreground"
+          />
           <div className="text-center sm:text-left">
             <h3 className="font-display text-lg font-bold text-foreground">
               {faculty?.name} {faculty?.lastName}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, Users, Search, FileDown, X, CalendarCheck, Plus } from "lucide-react";
+import { Eye, Users, Search, FileDown, X, CalendarCheck, Plus, Trash2 } from "lucide-react";
 import { useSelector } from "react-redux";
 import TableSkeleton from "@/components/TableSkeleton";
 import ActiveUserToggle from "@/components/ActiveUserToggle";
@@ -13,6 +13,8 @@ import { SEMESTERS } from "@/lib/academic";
 import { selectInputClass as selectClass } from "@/lib/formStyles";
 import { getCommonStudentValidationError } from "@/lib/studentValidation";
 import { StudentFormField as Field } from "@/components/students/StudentFormPrimitives";
+import UserAvatar from "@/components/UserAvatar";
+import ConfirmDeleteModal from "@/components/ConfirmDelete";
 
 const defaultForm = {
   name: "",
@@ -46,6 +48,8 @@ const HodStudents = () => {
   const [attendanceFor, setAttendanceFor] = useState<any | null>(null);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(defaultForm);
@@ -184,6 +188,25 @@ const HodStudents = () => {
     }
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget?._id) return;
+    setDeleting(true);
+    try {
+      const res = await UserService.deleteUser(deleteTarget._id);
+      if (res?.error || res?.statusCode >= 400) {
+        toast.error(res?.message ?? "Failed to delete student");
+        return;
+      }
+      toast.success(res?.message ?? "Student deleted successfully");
+      setDeleteTarget(null);
+      await refetch();
+    } catch {
+      toast.error("Network error, please try again");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const generateReport = () => {
     if (filtered.length === 0) {
       toast.error("No students to export");
@@ -216,7 +239,7 @@ const HodStudents = () => {
     return <div className="p-6 text-sm text-muted-foreground">Access denied.</div>;
   }
 
-  if (isLoading) return <TableSkeleton rows={6} cols={7} />;
+  if (isLoading) return <TableSkeleton rows={6} cols={9} />;
 
   return (
     <div className="space-y-4">
@@ -262,7 +285,7 @@ const HodStudents = () => {
         <table className="w-full min-w-[700px]">
           <thead>
             <tr className="border-b border-border">
-              {["S.No", "Student ID", "Name", "Last Name", "Class", "Session", "Status", "Actions"].map((h) => (
+              {["S.No", "Photo", "Student ID", "Name", "Last Name", "Class", "Session", "Status", "Actions"].map((h) => (
                 <th key={h} className="p-3 sm:p-4 text-left text-xs sm:text-sm font-medium text-muted-foreground">
                   {h}
                 </th>
@@ -275,6 +298,9 @@ const HodStudents = () => {
                 transition={{ delay: i * 0.02 }}
                 className="border-b border-border last:border-0 hover:bg-secondary/40 transition-colors">
                 <td className="p-3 sm:p-4 text-xs sm:text-sm">{String(i + 1).padStart(2, "0")}</td>
+                <td className="p-3 sm:p-4">
+                  <UserAvatar image={s?.image} name={s?.name} lastName={s?.lastName} className="h-10 w-10" />
+                </td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm font-medium">{s?.specialId}</td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm">{s?.name}</td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">{s?.lastName}</td>
@@ -294,13 +320,18 @@ const HodStudents = () => {
                       title="Attendance report">
                       <CalendarCheck className="h-4 w-4" />
                     </button>
+                    <button onClick={() => setDeleteTarget(s)}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      title="Delete student">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </td>
               </motion.tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-sm text-muted-foreground">
+                <td colSpan={9} className="p-8 text-center text-sm text-muted-foreground">
                   No students found.
                 </td>
               </tr>
@@ -318,8 +349,16 @@ const HodStudents = () => {
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md rounded-2xl bg-card p-6 shadow-modal max-h-[90vh] overflow-y-auto">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-display text-lg font-bold text-foreground">Student Details</h2>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <UserAvatar
+                    image={detail?.image}
+                    name={detail?.name}
+                    lastName={detail?.lastName}
+                    className="h-11 w-11"
+                  />
+                  <h2 className="font-display text-lg font-bold text-foreground">Student Details</h2>
+                </div>
                 <button onClick={() => setDetail(null)} className="text-muted-foreground hover:text-foreground">
                   <X className="h-5 w-5" />
                 </button>
@@ -360,11 +399,19 @@ const HodStudents = () => {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-2xl rounded-2xl bg-card shadow-modal max-h-[90vh] flex flex-col">
               <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <div>
-                  <h2 className="font-display text-lg font-bold text-foreground">Attendance Report</h2>
-                  <p className="text-xs text-muted-foreground">
-                    {attendanceFor?.name} {attendanceFor?.lastName} · {attendanceFor?.specialId}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <UserAvatar
+                    image={attendanceFor?.image}
+                    name={attendanceFor?.name}
+                    lastName={attendanceFor?.lastName}
+                    className="h-10 w-10"
+                  />
+                  <div>
+                    <h2 className="font-display text-lg font-bold text-foreground">Attendance Report</h2>
+                    <p className="text-xs text-muted-foreground">
+                      {attendanceFor?.name} {attendanceFor?.lastName} · {attendanceFor?.specialId}
+                    </p>
+                  </div>
                 </div>
                 <button onClick={() => setAttendanceFor(null)} className="text-muted-foreground hover:text-foreground">
                   <X className="h-5 w-5" />
@@ -572,6 +619,15 @@ const HodStudents = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        name={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
+        detail={` ${deleteTarget?.specialId ?? ""} - All their records will be permanently removed.`}
+        deleting={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };

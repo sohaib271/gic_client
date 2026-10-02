@@ -10,6 +10,7 @@ import UserService from "@/services/userService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import FacultyDetailView from "@/components/FacultyDetailView";
+import UserAvatar from "@/components/UserAvatar";
 import PaginationControls from "@/components/PaginationControls";
 import { usePagination } from "@/hooks/usePagination";
 
@@ -201,6 +202,7 @@ const Faculty = () => {
             <tr className="border-b border-border">
               {[
                 "S.No",
+                "Photo",
                 "First Name",
                 "Last Name",
                 "Date of Joining",
@@ -227,6 +229,9 @@ const Faculty = () => {
               >
                 <td className="p-3 sm:p-4 text-xs sm:text-sm">
                   {String(i + 1).padStart(2, "0")}
+                </td>
+                <td className="p-3 sm:p-4">
+                  <UserAvatar image={m?.image} name={m?.name} lastName={m?.lastName} className="h-10 w-10" />
                 </td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm font-medium">
                   {m?.name}
@@ -267,7 +272,7 @@ const Faculty = () => {
             {displayData?.length === 0 && (
               <tr>
                 <td
-                  colSpan={isProfessor ? 6 : 5}
+                  colSpan={isProfessor ? 7 : 6}
                   className="p-8 text-center text-sm text-muted-foreground"
                 >
                   No records found.

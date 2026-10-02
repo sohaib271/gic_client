@@ -26,6 +26,7 @@ import ClassService from "@/services/classService";
 import DepartmentService from "@/services/departmentService";
 import TeacherAttendanceService from "@/services/teacherAttendanceService";
 import PaginationControls from "@/components/PaginationControls";
+import UserAvatar from "@/components/UserAvatar";
 import { usePagination } from "@/hooks/usePagination";
 
 const STUDENTS_PER_PAGE = 10;
@@ -937,9 +938,7 @@ const facultyPagination = usePagination(filteredProfessors, 10);
                     <td className="px-4 py-3 font-medium text-foreground">{p.specialId ?? "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-xs font-bold text-primary">
-                          {p.name?.[0]}{p.lastName?.[0]}
-                        </div>
+                        <UserAvatar image={p.image} name={p.name} lastName={p.lastName} className="h-7 w-7" />
                         <span className="text-foreground">{p.name} {p.lastName}</span>
                       </div>
                     </td>

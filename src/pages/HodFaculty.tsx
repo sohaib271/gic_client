@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Briefcase, Check, Clock, Eye, History, Plus, UserCircle, X } from "lucide-react";
+import { ArrowLeft, Briefcase, Check, Clock, Eye, History, Plus, X } from "lucide-react";
 import { useSelector } from "react-redux";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useUsers } from "@/hooks/useUsers";
 import { useTeacherAttendanceHistory } from "@/hooks/useTeacherAttendance";
 import FacultyDetailView from "@/components/FacultyDetailView";
+import UserAvatar from "@/components/UserAvatar";
 import UserService from "@/services/userService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -142,7 +143,7 @@ const HodFaculty = () => {
     return <div className="p-6 text-sm text-muted-foreground">Access denied.</div>;
   }
 
-  if (isLoading) return <TableSkeleton rows={5} cols={5} />;
+  if (isLoading) return <TableSkeleton rows={5} cols={7} />;
 
   if (showTeacherHistory && selectedTeacher) {
     return (
@@ -160,9 +161,12 @@ const HodFaculty = () => {
         </div>
 
         <div className="flex items-center gap-3 border-b border-border bg-secondary/20 px-5 py-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-            <UserCircle className="h-5 w-5 text-primary" />
-          </div>
+          <UserAvatar
+            image={selectedTeacher?.image}
+            name={selectedTeacher?.name}
+            lastName={selectedTeacher?.lastName}
+            className="h-9 w-9"
+          />
           <div>
             <p className="text-sm font-semibold text-foreground">
               {selectedTeacher.name} {selectedTeacher.lastName}
@@ -278,7 +282,7 @@ const HodFaculty = () => {
         <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b border-border">
-              {["S.No", "First Name", "Last Name", "Date of Joining", "Subjects", "Action"].map((h) => (
+              {["S.No", "Photo", "First Name", "Last Name", "Date of Joining", "Subjects", "Action"].map((h) => (
                 <th key={h} className="p-3 sm:p-4 text-left text-xs sm:text-sm font-medium text-muted-foreground">
                   {h}
                 </th>
@@ -291,6 +295,9 @@ const HodFaculty = () => {
                 transition={{ delay: i * 0.03 }}
                 className="border-b border-border last:border-0 hover:bg-secondary/40 transition-colors">
                 <td className="p-3 sm:p-4 text-xs sm:text-sm">{String((facultyPagination.page - 1) * facultyPagination.pageSize + i + 1).padStart(2, "0")}</td>
+                <td className="p-3 sm:p-4">
+                  <UserAvatar image={m?.image} name={m?.name} lastName={m?.lastName} className="h-10 w-10" />
+                </td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm font-medium">{m?.name}</td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm">{m?.lastName}</td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">{m?.doj}</td>
@@ -320,7 +327,7 @@ const HodFaculty = () => {
             ))}
             {deptProfessors.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">
+                <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
                   No professors in your department.
                 </td>
               </tr>

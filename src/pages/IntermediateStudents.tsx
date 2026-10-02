@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Trash2, X, Eye, ArrowRight, Upload, Receipt } from "lucide-react";
 import ConfirmDeleteModal from "@/components/ConfirmDelete"
+import UserAvatar from "@/components/UserAvatar";
 import TableSkeleton from "@/components/TableSkeleton";
 import StudentFeeDetailModal from "@/components/StudentFeeDetailModal";
 import ActiveUserToggle from "@/components/ActiveUserToggle";
@@ -338,7 +339,7 @@ const handleEditStudent = async () => {
         <table className="w-full min-w-[700px]">
           <thead>
             <tr className="border-b border-border">
-              {["S.No", "Student ID", "Name", "Last Name", "Class", "DOJ", "Actions"].map((h) => (
+              {["S.No", "Photo", "Student ID", "Name", "Last Name", "Class", "DOJ", "Actions"].map((h) => (
                 <th key={h} className="table-header p-4 text-left text-sm font-medium text-muted-foreground">{h}</th>
               ))}
             </tr>
@@ -349,6 +350,9 @@ const handleEditStudent = async () => {
                 transition={{ delay: i * 0.03 }}
                 className="border-b border-border last:border-0 hover:bg-secondary/50 transition-colors">
                 <td className="p-4 text-sm">{String(i + 1).padStart(2, "0")}</td>
+                <td className="p-4">
+                  <UserAvatar image={s?.image} name={s?.name} lastName={s?.lastName} className="h-10 w-10" />
+                </td>
                 <td className="p-4 text-sm font-medium">{s?.specialId}</td>
                 <td className="p-4 text-sm">{s?.name}</td>
                 <td className="p-4 text-sm text-muted-foreground">{s?.lastName}</td>
@@ -402,7 +406,7 @@ const handleEditStudent = async () => {
               </motion.tr>
             ))}
             {displayed?.length === 0 && (
-              <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">No students found</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-sm text-muted-foreground">No students found</td></tr>
             )}
           </tbody>
         </table>
