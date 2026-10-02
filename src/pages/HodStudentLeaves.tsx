@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import TableSkeleton from "@/components/TableSkeleton";
+import UserAvatar from "@/components/UserAvatar";
 import type { LeaveApplication, LeaveStatus } from "@/services/leaveApplicationService";
 import {
   LEAVE_FILTERS,
@@ -28,6 +29,7 @@ import {
   normalizeApplications,
   studentName,
   studentRollNo,
+  studentIdentity,
   useDecideLeave,
   useLeaveApplications,
   useLeaveTypes,
@@ -253,7 +255,7 @@ const HodStudentLeaves = () => {
           <div className="rounded-xl border border-border bg-card shadow-card">
             {isLoading ? (
               <div className="p-4">
-                <TableSkeleton rows={5} cols={6} />
+                <TableSkeleton rows={5} cols={7} />
               </div>
             ) : visible.length === 0 ? (
               <div className="flex flex-col items-center gap-2 p-12 text-center">
@@ -270,6 +272,7 @@ const HodStudentLeaves = () => {
                   <thead>
                     <tr className="border-b border-border">
                       {[
+                        "Photo",
                         "Student",
                         "Roll No",
                         "Class",
@@ -303,6 +306,12 @@ const HodStudentLeaves = () => {
                           key={a._id}
                           className="border-b border-border last:border-0 transition-colors hover:bg-secondary/40"
                         >
+                          <td className="p-3">
+                            <UserAvatar
+                              {...studentIdentity(a)}
+                              className="h-9 w-9"
+                            />
+                          </td>
                           <td className="p-3 text-sm font-medium text-foreground">
                             {studentName(a)}
                           </td>

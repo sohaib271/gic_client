@@ -35,6 +35,7 @@ export interface LeaveApplication {
         name?: string;
         lastName?: string;
         className?: string;
+        image?: string;
       }
     | null;
   className?: string;

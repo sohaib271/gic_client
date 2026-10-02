@@ -5,6 +5,7 @@ import { ArrowLeft, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import TableSkeleton from "@/components/TableSkeleton";
 import UserService from "@/services/userService";
+import UserAvatar from "@/components/UserAvatar";
 import { toast } from "sonner";
 
 const roleLabel = (role: string) => {
@@ -120,7 +121,7 @@ const ActiveUsers = () => {
           </span>
 
           {loading ? (
-            <TableSkeleton rows={5} cols={5} />
+            <TableSkeleton rows={5} cols={6} />
           ) : users.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No active users yet today.
@@ -132,6 +133,7 @@ const ActiveUsers = () => {
                   <tr className="border-b border-border">
                     {[
                       "S.No",
+                      "Photo",
                       "Name",
                       "Role",
                       "Special ID",
@@ -157,6 +159,9 @@ const ActiveUsers = () => {
                     >
                       <td className="p-3 sm:p-4 text-xs sm:text-sm">
                         {String(i + 1).padStart(2, "0")}
+                      </td>
+                      <td className="p-3 sm:p-4">
+                        <UserAvatar image={u.image} name={u.name} lastName={u.lastName} className="h-10 w-10" />
                       </td>
                       <td className="p-3 sm:p-4 text-xs sm:text-sm font-medium">
                         {`${u.name ?? ""} ${u.lastName ?? ""}`}

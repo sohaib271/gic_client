@@ -102,6 +102,22 @@ export const studentRollNo = (app: LeaveApplication): string => {
   return s?.specialId ?? s?.rollNo ?? app?.studentSpecialId ?? "—";
 };
 
+/**
+ * Photo + name parts for the student avatar. `studentId` is null once the
+ * student record is deleted, in which case we fall back to the name snapshot
+ * stored on the leave row so the row still renders initials instead of a gap.
+ */
+export const studentIdentity = (
+  app: LeaveApplication,
+): { image: string; name: string; lastName: string } => {
+  const s = student(app);
+  if (s) {
+    return { image: s?.image ?? "", name: s?.name ?? "", lastName: s?.lastName ?? "" };
+  }
+  const parts = String(app?.studentName ?? "").trim().split(/\s+/);
+  return { image: "", name: parts[0] ?? "", lastName: parts.slice(1).join(" ") };
+};
+
 export const classOf = (app: LeaveApplication): string => {
   const s = student(app);
   return s?.className ?? app?.className ?? "—";

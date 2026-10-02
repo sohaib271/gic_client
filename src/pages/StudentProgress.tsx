@@ -23,6 +23,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import ClassService from "@/services/classService";
 import UserService from "@/services/userService";
+import UserAvatar from "@/components/UserAvatar";
 import { toast } from "sonner";
 
 interface ProgressData {
@@ -321,9 +322,13 @@ const StudentProgress = ({ deptId, backPath = "/admin/settings" }: { deptId?: st
                       onClick={() => loadProgress(s)}
                       className="group flex w-full items-center gap-3 rounded-lg border border-transparent px-2 py-2 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
                     >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-accent/20 text-xs font-bold uppercase text-primary ring-2 ring-primary/10">
-                        {(s.name ?? "?").charAt(0)}
-                      </div>
+                      <UserAvatar
+                        image={s.image}
+                        name={s.name}
+                        lastName={s.lastName}
+                        className="h-10 w-10 ring-2 ring-primary/10"
+                        fallbackClassName="bg-gradient-to-br from-primary/20 to-accent/20 text-primary"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-foreground group-hover:text-primary">
                           {s.name} {s.lastName ?? ""}
@@ -362,10 +367,13 @@ const StudentProgress = ({ deptId, backPath = "/admin/settings" }: { deptId?: st
             </div>
             <CardContent className="relative px-6 pb-6">
               <div className="flex flex-wrap items-end gap-4">
-                <div className="-mt-12 flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent text-2xl font-bold uppercase text-primary-foreground ring-4 ring-card shadow-lg">
-                  {(p.name ?? "?").charAt(0)}
-                  {(p.lastName ?? "").charAt(0)}
-                </div>
+                <UserAvatar
+                  image={picked?.image ?? p.image}
+                  name={p.name}
+                  lastName={p.lastName}
+                  className="-mt-12 h-24 w-24 rounded-2xl text-2xl ring-4 ring-card shadow-lg"
+                  fallbackClassName="bg-gradient-to-br from-primary to-accent text-primary-foreground"
+                />
                 <div className="min-w-0 flex-1 pb-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="font-display text-xl font-bold text-foreground">

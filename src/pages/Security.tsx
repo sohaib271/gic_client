@@ -7,7 +7,6 @@ import {
   KeyRound,
   Mail,
   Phone,
-  User,
   Send,
   Lock,
   Loader2,
@@ -15,6 +14,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import UserAvatar from "@/components/UserAvatar";
 import UserService from "@/services/userService";
 import AuthService from "@/services/authService";
 import { toast } from "sonner";
@@ -35,6 +35,7 @@ const Security = ({ backPath = "/admin/settings", roleName = "admin profile" }: 
     email: "",
     phone: "",
     city: "",
+    image: "",
   });
   const [profileSaving, setProfileSaving] = useState(false);
 
@@ -60,6 +61,7 @@ const Security = ({ backPath = "/admin/settings", roleName = "admin profile" }: 
             email: u.email ?? "",
             phone: u.phone ?? "",
             city: u.city ?? "",
+            image: u.image ?? "",
           });
         }
       })
@@ -166,9 +168,12 @@ const Security = ({ backPath = "/admin/settings", roleName = "admin profile" }: 
           <Card>
             <CardContent className="p-6">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
+                <UserAvatar
+                  image={profile.image}
+                  name={profile.name}
+                  lastName={profile.lastName}
+                  className="h-10 w-10"
+                />
                 <div>
                   <h2 className="font-display text-base font-semibold text-foreground">
                     Account Details
