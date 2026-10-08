@@ -65,7 +65,6 @@ const ScoreClasses = ({ category, heading }: ScoreClassesProps) => {
       <ClassResultSheet
         classData={selectedClass}
         departmentId={deptId || selectedClass?.departmentId?._id}
-        backPath=""
         onBack={() => setSelectedClass(null)}
       />
     );

@@ -78,15 +78,15 @@ const navItems: NavItem[] = [
   //     { to: "/admin/subjects/bs-adp", label: "BS / ADP" },
   //   ],
   // },
-  // {
-  //   to: "/admin/score",
-  //   icon: Trophy,
-  //   label: "Score",
-  //   children: [
-  //     { to: "/admin/score/intermediate", label: "Intermediate" },
-  //     { to: "/admin/score/bs-adp", label: "BS / ADP" },
-  //   ],
-  // },
+  {
+    to: "/admin/score",
+    icon: Trophy,
+    label: "Score",
+    children: [
+      { to: "/admin/score/intermediate", label: "Intermediate" },
+      { to: "/admin/score/bs-adp", label: "BS / ADP" },
+    ],
+  },
   // {
   //   to: "/admin/accounts",
   //   icon: Wallet,

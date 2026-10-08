@@ -23,7 +23,6 @@ import { usePagination } from "@/hooks/usePagination";
 interface ClassResultSheetProps {
   classData: any;
   departmentId?: string;
-  backPath: string;
   onBack: () => void;
 }
 
@@ -61,7 +60,6 @@ const StatCard = ({
 const ClassResultSheet = ({
   classData,
   departmentId,
-  backPath,
   onBack,
 }: ClassResultSheetProps) => {
   const session = classData?.session ?? "";

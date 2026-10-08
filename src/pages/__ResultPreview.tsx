@@ -24,7 +24,7 @@ const __ResultPreview = () => (
     <ClassResultSheet
       classData={MOCK_CLASS}
       departmentId="d1"
-      backPath=""
+      
       onBack={() => window.history.back()}
     />
   </div>
