@@ -71,6 +71,7 @@ const HodFaculty = lazy(() => import("./pages/HodFaculty"));
 const HodStudents = lazy(() => import("./pages/HodStudents"));
   const HodProfile = lazy(() => import("./pages/HodProfile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Preview = lazy(() => import("./pages/__ResultPreview"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,6 +94,7 @@ const App = () => (
             <Suspense fallback={<LoadingScreen />}>
             <Routes>
               <Route path="/" element={<Login />} />
+              <Route path="/__preview" element={<Preview />} />
               <Route path="/register/:token" element={<Register />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Navigate to="dashboard" replace />} />

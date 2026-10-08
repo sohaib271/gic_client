@@ -1,10 +1,7 @@
-import DataSourceEmptyState from "@/components/DataSourceEmptyState";
+import ScoreClasses from "@/components/ScoreClasses";
 
 const IntermediateScore = () => (
-  <DataSourceEmptyState
-    title="Intermediate Score"
-    description="Scores will appear here after a score data source is connected."
-  />
+  <ScoreClasses category="intermediate" heading="Intermediate Score" />
 );
 
 export default IntermediateScore;
