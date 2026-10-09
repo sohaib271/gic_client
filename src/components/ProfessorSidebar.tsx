@@ -22,6 +22,7 @@ const baseNavItems = [
 ];
 
 const hodNavItems = [
+  { to: "/professor/department/dashboard", icon: LayoutDashboard, label: "Department Dashboard" },
   { to: "/professor/department/classes", icon: Building2, label: "Department Classes" },
   { to: "/professor/department/faculty", icon: Briefcase, label: "Department Faculty" },
   { to: "/professor/department/students", icon: Users, label: "Department Students" },

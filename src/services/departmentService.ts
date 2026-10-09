@@ -17,6 +17,27 @@ class DepartmentService{
     return result;
   }
 
+  /**
+   * HOD department dashboard.
+   * The department is resolved on the backend from the logged-in HOD token —
+   * no department id is sent from the client.
+   */
+  static async getHodDashboard(params?: { from?: string; to?: string; year?: number }){
+    const qs = new URLSearchParams();
+    if (params?.from) qs.set("from", params.from);
+    if (params?.to) qs.set("to", params.to);
+    if (params?.year) qs.set("year", String(params.year));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+
+    const res = await fetch(`${API}/departments/dashboard${suffix}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    });
+
+    return res.json();
+  }
+
   static async createDepartment(data: Omit<Department, '_id'>){
     const res=await fetch(`${API}/departments/create`,{
       method:"POST",

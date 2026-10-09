@@ -69,6 +69,7 @@ const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
 const HodClasses = lazy(() => import("./pages/HodClasses"));
 const HodFaculty = lazy(() => import("./pages/HodFaculty"));
 const HodStudents = lazy(() => import("./pages/HodStudents"));
+const HodDashboard = lazy(() => import("./pages/HodDashboard"));
   const HodProfile = lazy(() => import("./pages/HodProfile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Preview = lazy(() => import("./pages/__ResultPreview"));
@@ -133,9 +134,10 @@ const App = () => (
                 <Route path="student-progress" element={<StudentProgress />} />
               </Route>
               <Route path="/professor" element={<ProfessorLayout />}>
-                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route index element={<Navigate to="department/dashboard" replace />} />
                 <Route path="dashboard" element={<ProfessorDashboard />} />
                 <Route path="classes" element={<ProfessorClasses />} />
+                <Route path="department/dashboard" element={<HodDashboard />} />
                 <Route path="department/classes" element={<HodClasses />} />
                 <Route path="department/faculty" element={<HodFaculty />} />
                 <Route path="department/students" element={<HodStudents />} />
