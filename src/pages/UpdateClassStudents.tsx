@@ -25,7 +25,7 @@ const UpdateClassStudents = () => {
   const [edits, setEdits] = useState<Record<string, Partial<any>>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [globalClass, setGlobalClass] = useState("");
+  const [globalClass, setGlobalClass] = useState<string | undefined>(undefined);
   const [globalUpdating, setGlobalUpdating] = useState(false);
 
   const load = async () => {
@@ -35,7 +35,7 @@ const UpdateClassStudents = () => {
         setClassInfo(classDataFromState);
         setStudents(classDataFromState.classStudents);
         setEdits({});
-        setGlobalClass("");
+        setGlobalClass(undefined);
         return;
       }
       const infoRes = await ClassService.getClassInfo(classId);
@@ -106,7 +106,7 @@ const UpdateClassStudents = () => {
       const failed = visibleStudents.length - succeeded;
       if (succeeded) toast.success(`${succeeded} student(s) class updated`);
       if (failed) toast.error(`${failed} student(s) could not be updated`);
-      setGlobalClass("");
+      setGlobalClass(undefined);
       setEdits({});
       await load();
     } catch {
@@ -176,7 +176,6 @@ const UpdateClassStudents = () => {
                   <SelectValue placeholder="Class" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Class</SelectItem>
                   {CLASS_OPTIONS.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
