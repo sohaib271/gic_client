@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { TrendingUp, Shield, Wallet, CalendarCheck, CalendarClock, ClipboardList, Award, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { TrendingUp, Shield, Wallet, CalendarCheck, CalendarClock, ClipboardList, Award, ChevronRight, SlidersHorizontal, UserRound } from "lucide-react";
 import { useSelector } from "react-redux";
 
 const HodSettings = () => {
@@ -47,6 +47,14 @@ const HodSettings = () => {
       iconColor: "text-rose-600",
       onClick: () => navigate("/professor/settings/midterm-results"),
       sub: "Midterm test results and marks of students.",
+    },
+    {
+      label: "Update Student",
+      icon: UserRound,
+      iconBg: "bg-indigo-50",
+      iconColor: "text-indigo-600",
+      onClick: () => navigate("/professor/settings/update-students"),
+      sub: "Update student details class-wise, same as classes grid.",
     },
     {
       label: "Student Leaves",

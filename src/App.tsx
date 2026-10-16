@@ -64,6 +64,8 @@ const MidtermTests = lazy(() => import("./pages/MidtermTests"));
 const MidtermClassSchedule = lazy(() => import("./pages/MidtermClassSchedule"));
 const MidtermResults = lazy(() => import("./pages/MidtermResults"));
 const MidtermClassResults = lazy(() => import("./pages/MidtermClassResults"));
+const UpdateStudent = lazy(() => import("./pages/UpdateStudent"));
+const UpdateClassStudents = lazy(() => import("./pages/UpdateClassStudents"));
 const ProfessorDashboard = lazy(() => import("./pages/ProfessorDashboard"));
 const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
 const HodClasses = lazy(() => import("./pages/HodClasses"));
@@ -154,6 +156,8 @@ const App = () => (
                 <Route path="settings/midterm-tests/:classId" element={<MidtermClassSchedule />} />
                 <Route path="settings/midterm-results" element={<MidtermResults />} />
                 <Route path="settings/midterm-results/:classId" element={<MidtermClassResults />} />
+                <Route path="settings/update-students" element={<UpdateStudent />} />
+                <Route path="settings/update-students/:classId" element={<UpdateClassStudents />} />
                 <Route path="settings/security" element={<HodSecurity />} />
               </Route>
               <Route path="*" element={<NotFound />} />

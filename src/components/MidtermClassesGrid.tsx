@@ -156,7 +156,9 @@ const MidtermClassesGrid = ({ basePath }: MidtermClassesGridProps) => {
               <article
                 key={cls._id}
                 className="mtx-card"
-                onClick={() => navigate(`${basePath}/${cls._id}`)}
+                onClick={() =>
+                  navigate(`${basePath}/${cls._id}`, { state: { classData: cls } })
+                }
               >
                 <div className="mtx-art">
                   <img src={classroomArt} alt={cls.className} />
