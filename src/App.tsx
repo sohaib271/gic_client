@@ -19,6 +19,7 @@ import Register from "./pages/Register";
 // Layouts and all inner pages are code-split to shrink the initial bundle.
 const AdminLayout = lazy(() => import("./components/AdminLayout"));
 const ProfessorLayout = lazy(() => import("./components/ProfessorLayout"));
+const PrincipalLayout = lazy(() => import("./components/PrincipalLayout"));
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Students = lazy(() => import("./pages/Students"));
@@ -67,6 +68,11 @@ const MidtermClassResults = lazy(() => import("./pages/MidtermClassResults"));
 const UpdateStudent = lazy(() => import("./pages/UpdateStudent"));
 const UpdateClassStudents = lazy(() => import("./pages/UpdateClassStudents"));
 const ProfessorDashboard = lazy(() => import("./pages/ProfessorDashboard"));
+const PrincipalDashboard = lazy(() => import("./pages/PrincipalDashboard"));
+const PrincipalFaculty = lazy(() => import("./pages/PrincipalFaculty"));
+const PrincipalStudents = lazy(() => import("./pages/PrincipalStudents"));
+const PrincipalClasses = lazy(() => import("./pages/PrincipalClasses"));
+const PrincipalDepartments = lazy(() => import("./pages/PrincipalDepartments"));
 const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
 const HodClasses = lazy(() => import("./pages/HodClasses"));
 const HodFaculty = lazy(() => import("./pages/HodFaculty"));
@@ -159,6 +165,14 @@ const App = () => (
                 <Route path="settings/update-students" element={<UpdateStudent />} />
                 <Route path="settings/update-students/:classId" element={<UpdateClassStudents />} />
                 <Route path="settings/security" element={<HodSecurity />} />
+              </Route>
+              <Route path="/principal" element={<PrincipalLayout />}>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<PrincipalDashboard />} />
+                <Route path="faculty" element={<PrincipalFaculty />} />
+                <Route path="students" element={<PrincipalStudents />} />
+                <Route path="classes" element={<PrincipalClasses />} />
+                <Route path="departments" element={<PrincipalDepartments />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

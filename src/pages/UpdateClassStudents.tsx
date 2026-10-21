@@ -345,11 +345,15 @@ const UpdateClassStudents = () => {
                                 className="h-7 px-2.5 text-xs font-medium"
                               >
                                 {isSaving ? (
-                                  <Save className="h-3 w-3 mr-1.5 animate-spin" />
-                                  Saving…
+                                  <>
+                                    <Save className="h-3 w-3 mr-1.5 animate-spin" />
+                                    Saving…
+                                  </>
                                 ) : (
-                                  <Save className="h-3 w-3 mr-1.5" />
-                                  Save
+                                  <>
+                                    <Save className="h-3 w-3 mr-1.5" />
+                                    Save
+                                  </>
                                 )}
                               </Button>
                               <Button

@@ -11,12 +11,12 @@ import { useDispatch } from "react-redux";
 import { clearUser, setUser } from "@/store/userSlice";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { isAdminUser, isHodProfessor, isValidUserResponse } from "@/lib/auth";
+import { isAdminUser, isHodProfessor, isPrincipalUser, isValidUserResponse } from "@/lib/auth";
 
 const Login = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const dispatch=useDispatch();
+  const dispatch = useDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -41,15 +41,19 @@ const Login = () => {
         }
 
         // Block plain professors (non-HOD) from restoring a session
-        if (!isAdminUser(currentUser) && !isHodProfessor(currentUser)) {
+        if (!isAdminUser(currentUser) && !isHodProfessor(currentUser) && !isPrincipalUser(currentUser)) {
           throw new Error("Professors cannot log in");
         }
 
         if (!cancelled) {
-          dispatch(setUser({ user: currentUser}));
-          navigate(isAdminUser(currentUser) ? "/admin/dashboard" : "/professor/dashboard", {
-            replace: true,
-          });
+          dispatch(setUser({ user: currentUser }));
+          if (isAdminUser(currentUser)) {
+            navigate("/admin/dashboard", { replace: true });
+          } else if (isPrincipalUser(currentUser)) {
+            navigate("/principal/dashboard", { replace: true });
+          } else {
+            navigate("/professor/dashboard", { replace: true });
+          }
         }
       } catch {
         if (!cancelled) {
@@ -66,57 +70,61 @@ const Login = () => {
   }, [dispatch, isAuthenticated, navigate, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!email || !password) {
-    setError("Please fill in all fields");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const res = await AuthService.login({ email, password });
-    if (res?.error) {
-      toast.error(res?.message);
-      setLoading(false);
-      return;
-    }
-    if (!isValidUserResponse(res?.user)) {
-      toast.error(res?.message || "Invalid login response");
-      setLoading(false);
-      return;
-    }
-    if (!isAdminUser(res?.user) && !isHodProfessor(res?.user)) {
-      toast.error("Access denied — only HOD professors can log in");
-      setLoading(false);
+    if (!email || !password) {
+      setError("Please fill in all fields");
       return;
     }
 
-    let loginUser = res?.user;
-    dispatch(setUser({ user: loginUser }));
+    setLoading(true);
+
     try {
-      const currentUser = await UserService.getCurrentUser();
-      if (isValidUserResponse(currentUser)) {
-        loginUser = currentUser;
-        dispatch(setUser({ user: loginUser}));
+      const res = await AuthService.login({ email, password });
+      if (res?.error) {
+        toast.error(res?.message);
+        setLoading(false);
+        return;
       }
-    } catch {
-    }
-    setError("");
+      if (!isValidUserResponse(res?.user)) {
+        toast.error(res?.message || "Invalid login response");
+        setLoading(false);
+        return;
+      }
+      if (!isAdminUser(res?.user) && !isHodProfessor(res?.user) && !isPrincipalUser(res?.user)) {
+        toast.error("Access denied — only Admin, HOD, or Principal can log in");
+        setLoading(false);
+        return;
+      }
 
-    if (isAdminUser(loginUser)) navigate("/admin/dashboard");
-    else if (isHodProfessor(loginUser)) navigate("/professor/dashboard");
-    else {
-      toast.error("Access denied");
-    }
+      let loginUser = res?.user;
+      dispatch(setUser({ user: loginUser }));
+      try {
+        const currentUser = await UserService.getCurrentUser();
+        if (isValidUserResponse(currentUser)) {
+          loginUser = currentUser;
+          dispatch(setUser({ user: loginUser }));
+        }
+      } catch {
+      }
+      setError("");
 
-  } catch (err) {
-    setError("Something went wrong");
-  } finally {
-    setLoading(false);
-  }
-};
+      if (isAdminUser(loginUser)) {
+        navigate("/admin/dashboard");
+      } else if (isPrincipalUser(loginUser)) {
+        navigate("/principal/dashboard");
+      } else if (isHodProfessor(loginUser)) {
+        navigate("/professor/dashboard");
+      } else {
+        toast.error("Access denied");
+      }
+
+    } catch (err) {
+      setError("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading || checkingSession) return <LoadingScreen />;
 

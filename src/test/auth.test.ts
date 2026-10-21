@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAdminUser, isHodProfessor, isTruthyFlag, isValidUserResponse } from "@/lib/auth";
+import { isAdminUser, isHodProfessor, isPrincipalUser, isTruthyFlag, isValidUserResponse } from "@/lib/auth";
 
 describe("auth helpers", () => {
   it("accepts production-style truthy HOD flags", () => {
@@ -13,6 +13,15 @@ describe("auth helpers", () => {
     expect(isAdminUser({ role: "Admin" })).toBe(true);
     expect(isHodProfessor({ role: "PROFF", isHod: "true" })).toBe(true);
     expect(isHodProfessor({ role: "proff", isHod: false })).toBe(false);
+  });
+
+  it("recognizes principal users", () => {
+    expect(isPrincipalUser({ role: "principal" })).toBe(true);
+    expect(isPrincipalUser({ role: "PRINCIPAL" })).toBe(true);
+    expect(isPrincipalUser({ role: "proff", isPrincipal: true })).toBe(true);
+    expect(isPrincipalUser({ role: "proff", isPrincipal: "true" })).toBe(true);
+    expect(isPrincipalUser({ role: "proff", isPrincipal: false })).toBe(false);
+    expect(isPrincipalUser({ role: "admin" })).toBe(false);
   });
 
   it("rejects backend error responses as users", () => {
