@@ -107,7 +107,12 @@ const PrincipalDepartments = () => {
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => {}}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => navigate(`/principal/departments/${dept._id ?? dept.code}`)}
+                >
                   <Eye className="h-3.5 w-3.5 mr-1.5" /> View Details
                 </Button>
               </div>

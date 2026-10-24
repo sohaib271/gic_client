@@ -32,9 +32,18 @@ interface LeaveManagementProps {
    * HODs into a route their role cannot access.
    */
   backTo?: string;
+  /**
+   * Read-only mode for roles that may inspect the school-wide leave policy but
+   * cannot change it. The backend only lets admins and HODs add or delete leave
+   * types, so for every other role the write controls are hidden.
+   */
+  readOnly?: boolean;
 }
 
-const LeaveManagement = ({ backTo = "/admin/settings" }: LeaveManagementProps) => {
+const LeaveManagement = ({
+  backTo = "/admin/settings",
+  readOnly = false,
+}: LeaveManagementProps) => {
   const navigate = useNavigate();
   const [leaveTypes, setLeaveTypes] = useState<Array<Record<string, any>>>([]);
   const [loading, setLoading] = useState(true);
@@ -171,7 +180,9 @@ const LeaveManagement = ({ backTo = "/admin/settings" }: LeaveManagementProps) =
         transition={{ delay: 0.1 }}
         className="mb-8 text-sm text-muted-foreground"
       >
-        Manage leave types like Sick, Holiday, Casual, etc.
+        {readOnly
+          ? "Leave types configured across the school"
+          : "Manage leave types like Sick, Holiday, Casual, etc."}
       </motion.p>
 
       <motion.div
@@ -198,16 +209,18 @@ const LeaveManagement = ({ backTo = "/admin/settings" }: LeaveManagementProps) =
             <p className="text-xs text-muted-foreground">
               {settingLoading
                 ? "Loading setting..."
-                : leaveApplyEnabled
-                  ? "Students can submit leave applications"
-                  : "Leave applications are disabled for students"}
+                : readOnly
+                  ? "Managed by the admin and HOD accounts"
+                  : leaveApplyEnabled
+                    ? "Students can submit leave applications"
+                    : "Leave applications are disabled for students"}
             </p>
           </div>
         </div>
         <Switch
           checked={leaveApplyEnabled}
           onCheckedChange={handleLeaveApplyToggle}
-          disabled={settingLoading}
+          disabled={settingLoading || readOnly}
           className="shrink-0"
         />
       </motion.div>
@@ -226,24 +239,28 @@ const LeaveManagement = ({ backTo = "/admin/settings" }: LeaveManagementProps) =
                 </span>
               </span>
             </div>
-            <Button onClick={openModal}>
-              <Plus className="h-4 w-4 mr-1" />
-              Add Leave Type
-            </Button>
+            {!readOnly && (
+              <Button onClick={openModal}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add Leave Type
+              </Button>
+            )}
           </div>
 
           {loading ? (
-            <TableSkeleton rows={5} cols={4} />
+            <TableSkeleton rows={5} cols={readOnly ? 3 : 4} />
           ) : leaveTypes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No leave types yet. Click "Add Leave Type" to add your first one.
+              {readOnly
+                ? "No leave types have been configured yet."
+                : 'No leave types yet. Click "Add Leave Type" to add your first one.'}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[520px]">
                 <thead>
                   <tr className="border-b border-border">
-                    {["S.No", "Leave Type", "Status", "Added", "Action"].map(
+                    {["S.No", "Leave Type", "Status", "Added", ...(readOnly ? [] : ["Action"])].map(
                       (h) => (
                         <th
                           key={h}
@@ -279,18 +296,20 @@ const LeaveManagement = ({ backTo = "/admin/settings" }: LeaveManagementProps) =
                       <td className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">
                         {formatDate(lt.createdAt)}
                       </td>
-                      <td className="p-3 sm:p-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 text-xs sm:text-sm"
-                          onClick={() => setDeleteTarget(lt)}
-                          disabled={deletingId !== null}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          Delete
-                        </Button>
-                      </td>
+                      {!readOnly && (
+                        <td className="p-3 sm:p-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 text-xs sm:text-sm"
+                            onClick={() => setDeleteTarget(lt)}
+                            disabled={deletingId !== null}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            Delete
+                          </Button>
+                        </td>
+                      )}
                     </motion.tr>
                   ))}
                 </tbody>

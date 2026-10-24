@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, LogOut, X, GraduationCap, Users, School, Building2, FileText } from "lucide-react";
+import { LayoutDashboard, LogOut, X, GraduationCap, Users, School, Building2, FileText, Settings } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AuthService from "@/services/authService";
@@ -22,6 +22,7 @@ const navItems = [
   { to: "/principal/students", icon: Users, label: "Students" },
   { to: "/principal/classes", icon: School, label: "Classes" },
   { to: "/principal/departments", icon: Building2, label: "Departments" },
+  { to: "/principal/settings", icon: Settings, label: "Settings" },
 ];
 
 interface PrincipalSidebarProps {

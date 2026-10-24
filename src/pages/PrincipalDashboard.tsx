@@ -123,7 +123,7 @@ const PrincipalDashboard = () => {
           <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
             Principal Dashboard
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
             Overview of school faculty, students, and academics
           </p>
         </div>

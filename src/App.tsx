@@ -73,6 +73,8 @@ const PrincipalFaculty = lazy(() => import("./pages/PrincipalFaculty"));
 const PrincipalStudents = lazy(() => import("./pages/PrincipalStudents"));
 const PrincipalClasses = lazy(() => import("./pages/PrincipalClasses"));
 const PrincipalDepartments = lazy(() => import("./pages/PrincipalDepartments"));
+const DepartmentDetail = lazy(() => import("./pages/DepartmentDetail"));
+const PrincipalSettings = lazy(() => import("./pages/PrincipalSettings"));
 const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
 const HodClasses = lazy(() => import("./pages/HodClasses"));
 const HodFaculty = lazy(() => import("./pages/HodFaculty"));
@@ -173,6 +175,20 @@ const App = () => (
                 <Route path="students" element={<PrincipalStudents />} />
                 <Route path="classes" element={<PrincipalClasses />} />
                 <Route path="departments" element={<PrincipalDepartments />} />
+                <Route path="departments/:departmentId" element={<DepartmentDetail />} />
+                <Route path="settings" element={<PrincipalSettings />} />
+                <Route
+                  path="settings/security"
+                  element={<Security backPath="/principal/settings" roleName="principal profile" />}
+                />
+                <Route
+                  path="settings/leave-types"
+                  element={<LeaveManagement backTo="/principal/settings" readOnly />}
+                />
+                <Route
+                  path="settings/app-preferences"
+                  element={<AppSettings backTo="/principal/settings" readOnly />}
+                />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
