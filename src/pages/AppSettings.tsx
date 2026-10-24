@@ -11,7 +11,23 @@ const REMARKS_KEY = "remarks_notifications_enabled";
 /** Same key the backend reads in sendPushNotification and the HOD screen uses. */
 const PUSH_SETTING_KEY = "is_push_noti_enable";
 
-const AppSettings = () => {
+interface AppSettingsProps {
+  /**
+   * Where "Back to Settings" should go. The page is reused by the Principal
+   * layout, which is mounted under /principal, so the default admin path would
+   * send principals into a route their role cannot access.
+   */
+  backTo?: string;
+  /**
+   * Read-only mode for roles that may inspect the app-wide toggles but cannot
+   * change them. The push-notification switch is a server-side setting that
+   * only admins and HODs can write, so it is locked for every other role.
+   * The remarks switch is a personal, device-local preference and stays usable.
+   */
+  readOnly?: boolean;
+}
+
+const AppSettings = ({ backTo = "/admin/settings", readOnly = false }: AppSettingsProps) => {
   const navigate = useNavigate();
   const [pushEnabled, setPushEnabled] = useState(true);
   const [remarksEnabled, setRemarksEnabled] = useState(true);
@@ -73,13 +89,15 @@ const AppSettings = () => {
       icon: pushEnabled ? <BellRing className="h-4 w-4 text-blue-600" /> : <BellOff className="h-4 w-4 text-gray-400" />,
       iconBg: pushEnabled ? "bg-blue-50" : "bg-gray-100",
       checked: pushEnabled,
-      disabled: pushLoading,
+      disabled: pushLoading || readOnly,
       onChecked: handleToggle,
       sub: pushLoading
         ? "Loading setting..."
-        : pushEnabled
-          ? "Server will deliver alerts to devices"
-          : "Push alerts are disabled on the server",
+        : readOnly
+          ? "Server-wide setting, managed by the admin and HOD accounts"
+          : pushEnabled
+            ? "Server will deliver alerts to devices"
+            : "Push alerts are disabled on the server",
     },
     {
       label: "Remarks",
@@ -96,7 +114,7 @@ const AppSettings = () => {
   return (
     <div>
       <button
-        onClick={() => navigate("/admin/settings")}
+        onClick={() => navigate(backTo)}
         className="mb-4 flex items-center gap-1 text-xs text-primary hover:underline"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Back to Settings
@@ -115,7 +133,9 @@ const AppSettings = () => {
         transition={{ delay: 0.1 }}
         className="mb-8 text-sm text-muted-foreground"
       >
-        Configure application-wide preferences
+        {readOnly
+          ? "Check the app-wide preference status and personal notification preferences"
+          : "Configure application-wide preferences"}
       </motion.p>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
