@@ -40,7 +40,9 @@ const ProfessorSidebar = ({ isOpen, onToggle }: Props) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state?.user.user);
-  const navItems = user?.isHod ? [...baseNavItems, ...hodNavItems] : baseNavItems;
+  const navItems = user?.isHod
+    ? [{ to: "/professor/department/dashboard", icon: LayoutDashboard, label: "Department Dashboard" }, ...baseNavItems, ...hodNavItems.filter((i) => i.to !== "/professor/department/dashboard")]
+    : baseNavItems;
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 

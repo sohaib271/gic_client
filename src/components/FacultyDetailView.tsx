@@ -72,6 +72,7 @@ const FacultyDetailView = ({ faculty, type, onBack, autoShowSchedule = false }: 
       ["HOD",           faculty?.isHod ? "Yes" : "No"]                                               as [string, string],
       ["Department",    faculty?.department?.code ?? faculty?.department ?? "—"]                       as [string, string],
       ["Qualification", faculty?.qualification ?? "—"]                                                as [string, string],
+      ["CTI",           faculty?.is_CTI ? "Yes" : "No"]                                               as [string, string],
       ["Subjects",      Array.isArray(faculty?.subjects) ? faculty.subjects.join(", ") : (faculty?.subjects ?? "—")] as [string, string],
     ] : []),
   ];

@@ -47,6 +47,7 @@ const belongsToDept = (value: any, dept: any) => {
 const DepartmentDetail = () => {  const navigate = useNavigate();
   const { departmentId } = useParams<{ departmentId: string }>();
   const [search, setSearch] = useState("");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   // Same query key as PrincipalDepartments so the list cache is shared.
   const { data: departments = [], isLoading: deptLoading } = useQuery({
@@ -62,6 +63,12 @@ const DepartmentDetail = () => {  const navigate = useNavigate();
   const { data: teachers = [], isLoading: teachersLoading } = useUsers("proff");
   const { data: students = [] } = useUsers("student");
   const { data: classes = [], isLoading: classesLoading } = useClasses("");
+  const { data: overview } = useQuery({
+    queryKey: ["department-overall", departmentId],
+    queryFn: async () => DepartmentService.getDepartmentOverAllData(departmentId!),
+    enabled: !!departmentId,
+    retry: false,
+  });
 
   const dept = useMemo(
     () =>
@@ -209,6 +216,15 @@ const DepartmentDetail = () => {  const navigate = useNavigate();
           Department code <span className="font-medium text-foreground">{dept.code || "—"}</span> ·{" "}
           {deptTeachers.length} faculty members · {deptClasses.length} classes
         </p>
+        <select
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(Number(e.target.value))}
+          className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+        >
+          {[2024, 2025, 2026, 2027].map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
       </motion.div>
 
       {/* Stats */}
@@ -408,7 +424,7 @@ const DepartmentDetail = () => {  const navigate = useNavigate();
                 <table className="w-full min-w-[720px]">
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
-                      {["S.No", "Class Name", "Session", "Shift", "Students", "Teacher", "Subjects"].map(
+                      {["S.No", "Class Name", "Session", "Shift", "Students", "Teacher"].map(
                         (h) => (
                           <th
                             key={h}
@@ -442,14 +458,12 @@ const DepartmentDetail = () => {  const navigate = useNavigate();
                             ? `${c.teacher.name} ${c.teacher.lastName || ""}`.trim()
                             : "Unassigned"}
                         </td>
-                        <td className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">
-                          {c?.subjects?.length || 0}
-                        </td>
+
                       </tr>
                     ))}
                     {deptClasses.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
+                        <td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">
                           No classes in this department.
                         </td>
                       </tr>

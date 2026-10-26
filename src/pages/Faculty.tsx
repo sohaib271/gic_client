@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, Plus, X } from "lucide-react";
+import { Eye, Plus, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDepartments } from "@/hooks/useDepartments";
 import { useUsers } from "@/hooks/useUsers";
 import UserService from "@/services/userService";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";import { cn } from "@/lib/utils";
 import FacultyDetailView from "@/components/FacultyDetailView";
 import UserAvatar from "@/components/UserAvatar";
 import PaginationControls from "@/components/PaginationControls";
@@ -61,6 +62,7 @@ const Faculty = () => {
     department: "",
     subjects: "",
     qualification: "",
+    is_CTI: "No",
   };
 
   const [form, setForm] = useState(defaultForm);
@@ -157,6 +159,7 @@ const Faculty = () => {
           .map((s) => s.trim())
           .filter(Boolean),
         qualification: form.qualification,
+        is_CTI: form.is_CTI === "Yes",
       }),
     };
     try {
@@ -255,17 +258,24 @@ const Faculty = () => {
                   </>
                 )}
                 <td className="p-3 sm:p-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-primary hover:text-primary text-xs sm:text-sm"
-                    onClick={() => {
-                      setDetailFaculty(m);
-                      setDetailType(type);
-                    }}
-                  >
-                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> View Detail
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-xs">Actions</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { setDetailFaculty(m); setDetailType(type); }}>
+                        <Eye className="h-3.5 w-3.5 mr-2" /> View Detail
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={async () => {
+                        if (!confirm("Delete this user?")) return;
+                        const res = await UserService.deleteUser(m._id);
+                        if (res?.error || res?.statusCode >= 400) toast.error(res?.message ?? "Failed");
+                        else { toast.success("Deleted"); await refetch(); }
+                      }} className="text-destructive">
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </motion.tr>
             ))}
@@ -483,6 +493,16 @@ const Faculty = () => {
                           value={form.qualification}
                           onChange={set("qualification")}
                         />
+                      </Field>
+                      <Field label="CTI">
+                        <select
+                          value={form.is_CTI}
+                          onChange={set("is_CTI")}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
                       </Field>
                     </>
                   )}

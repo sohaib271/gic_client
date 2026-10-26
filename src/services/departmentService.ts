@@ -13,7 +13,13 @@ class DepartmentService{
     const res=await fetch(`${API}/departments`,{method:"GET",headers:{"Content-Type":"application/json"},credentials:"include",});
 
     const result=await res.json();
+    
+    return result;
+  }
 
+  static async getDepartmentOverAllData(id: string){
+    const res=await fetch(`${API}/departments/department_over_all_data/${id}`,{method:"GET",headers:{"Content-Type":"application/json"},credentials:"include",});
+    const result=await res.json();
     return result;
   }
 

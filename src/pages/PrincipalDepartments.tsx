@@ -19,6 +19,7 @@ const PrincipalDepartments = () => {
     staleTime: 60_000,
   });
   const { data: teachers = [] } = useUsers("proff");
+  const { data: students = [] } = useUsers("student");
   const [search, setSearch] = useState("");
 
   const filteredDepts = useMemo(() => {
@@ -74,6 +75,7 @@ const PrincipalDepartments = () => {
         {filteredDepts.map((dept: any, i: number) => {
           const deptTeachers = teachers.filter((t: any) => t?.department === dept._id || t?.department?.code === dept.code);
           const hods = deptTeachers.filter((t: any) => t?.isHod);
+          const deptStudents = students.filter((s: any) => s?.department === dept._id || s?.department?.code === dept.code);
           return (
             <motion.div
               key={dept._id || i}
@@ -102,8 +104,8 @@ const PrincipalDepartments = () => {
                   <p className="text-xs text-muted-foreground">HODs</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="font-display text-xl font-bold text-emerald">{dept.subjects?.length || 0}</p>
-                  <p className="text-xs text-muted-foreground">Subjects</p>
+                  <p className="font-display text-xl font-bold text-emerald">{deptStudents.length}</p>
+                  <p className="text-xs text-muted-foreground">Students</p>
                 </div>
               </div>
               <div className="mt-4 flex gap-2">

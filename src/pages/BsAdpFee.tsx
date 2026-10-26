@@ -449,6 +449,12 @@ const BsAdpFee = () => {
               className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
+          <button
+            onClick={() => setShowGenerateFee(true)}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Generate All Fees
+          </button>
         </div>
 
         {/* Students Table */}

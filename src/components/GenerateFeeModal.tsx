@@ -92,9 +92,10 @@ export default function GenerateFeeModal({
   // In single-student mode, pre-select the only student
   // Otherwise, auto-select all students (since UI selection is removed)
   const isSingleStudent = singleStudentMode && students.length === 1;
-  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(
-    isSingleStudent ? new Set(students.map((s) => s._id)) : new Set(students.map((s) => s._id))
-  );
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set(students.map((s) => s._id)));
+  useEffect(() => {
+    setSelectedStudents(new Set(students.map((s) => s._id)));
+  }, [students]);
   const [selectAll, setSelectAll] = useState(false);
   const [month, setMonth] = useState(
     MONTHS.find((m) => m.value === currentMonth)?.value || "january"

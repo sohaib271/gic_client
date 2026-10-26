@@ -35,11 +35,6 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    to: "/admin/student-registration",
-    icon: UserPlus,
-    label: "Student Registration",
-  },
-  {
     to: "/admin/classes",
     icon: School,
     label: "Classes",
@@ -56,6 +51,11 @@ const navItems: NavItem[] = [
       { to: "/admin/fee/intermediate", label: "Intermediate" },
       { to: "/admin/fee/bs-adp", label: "BS / ADP" },
     ],
+  },
+  {
+    to: "/admin/student-registration",
+    icon: UserPlus,
+    label: "Student Registration",
   },
   { to: "/admin/faculty", icon: GraduationCap, label: "Faculty" },
   { to: "/admin/announcements", icon: BellRing, label: "Announcements" },
@@ -78,15 +78,7 @@ const navItems: NavItem[] = [
   //     { to: "/admin/subjects/bs-adp", label: "BS / ADP" },
   //   ],
   // },
-  {
-    to: "/admin/score",
-    icon: Trophy,
-    label: "Score",
-    children: [
-      { to: "/admin/score/intermediate", label: "Intermediate" },
-      { to: "/admin/score/bs-adp", label: "BS / ADP" },
-    ],
-  },
+  // Score section removed per user request
   // {
   //   to: "/admin/accounts",
   //   icon: Wallet,

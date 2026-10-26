@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Briefcase, Check, Clock, Eye, History, Plus, X } from "lucide-react";
+import { ArrowLeft, Briefcase, Check, Clock, Eye, History, Plus, Trash2, X } from "lucide-react";
 import { useSelector } from "react-redux";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useUsers } from "@/hooks/useUsers";
 import { useTeacherAttendanceHistory } from "@/hooks/useTeacherAttendance";
@@ -34,6 +35,7 @@ const defaultForm = {
   cnic: "",
   subjects: "",
   qualification: "",
+  is_CTI: false,
 };
 
 const Field = ({
@@ -120,6 +122,7 @@ const HodFaculty = () => {
         isHod: false,
         subjects: form.subjects.split(",").map((s) => s.trim()).filter(Boolean),
         qualification: form.qualification,
+        is_CTI: form.is_CTI,
       });
 
       if (res?.error || res?.statusCode >= 400) {
@@ -305,23 +308,27 @@ const HodFaculty = () => {
                   {Array.isArray(m?.subjects) ? m.subjects.join(", ") : m?.subjects ?? "—"}
                 </td>
                 <td className="p-3 sm:p-4">
-                  <div className="flex flex-wrap gap-2">
-<Button variant="ghost" size="sm" onClick={() => setDetail(m)}
-  className="gap-1.5 text-primary hover:text-primary hover:bg-primary/10 text-xs sm:text-sm">
-  <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> View
-</Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedTeacher(m);
-                        setShowTeacherHistory(true);
-                      }}
-                      className="gap-1.5 text-xs sm:text-sm"
-                    >
-                      <History className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Attendance
-                    </Button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-xs">Actions</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setDetail(m)}>
+                        <Eye className="h-3.5 w-3.5 mr-2" /> View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setSelectedTeacher(m); setShowTeacherHistory(true); }}>
+                        <History className="h-3.5 w-3.5 mr-2" /> Attendance
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={async () => {
+                        if (!confirm("Delete this teacher?")) return;
+                        const res = await UserService.deleteUser(m._id);
+                        if (res?.error || res?.statusCode >= 400) toast.error(res?.message ?? "Failed");
+                        else { toast.success("Deleted"); await refetch(); }
+                      }} className="text-destructive">
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </motion.tr>
             ))}
@@ -387,6 +394,16 @@ const HodFaculty = () => {
               </Field>
               <Field label="Qualification">
                 <Input value={form.qualification} onChange={set("qualification")} />
+              </Field>
+              <Field label="CTI">
+                <select
+                  value={form.is_CTI ? "true" : "false"}
+                  onChange={(e) => setForm((f) => ({ ...f, is_CTI: e.target.value === "true" }))}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
               </Field>
               <Field label="Department" col2>
                 <Input

@@ -173,6 +173,8 @@ const App = () => (
                 <Route path="dashboard" element={<PrincipalDashboard />} />
                 <Route path="faculty" element={<PrincipalFaculty />} />
                 <Route path="students" element={<PrincipalStudents />} />
+                <Route path="students/intermediate" element={<IntermediateStudents />} />
+                <Route path="students/bs-adp" element={<BsAdpStudents />} />
                 <Route path="classes" element={<PrincipalClasses />} />
                 <Route path="departments" element={<PrincipalDepartments />} />
                 <Route path="departments/:departmentId" element={<DepartmentDetail />} />

@@ -51,6 +51,8 @@ const Login = () => {
             navigate("/admin/dashboard", { replace: true });
           } else if (isPrincipalUser(currentUser)) {
             navigate("/principal/dashboard", { replace: true });
+          } else if (isHodProfessor(currentUser)) {
+            navigate("/professor/department/dashboard", { replace: true });
           } else {
             navigate("/professor/dashboard", { replace: true });
           }
@@ -114,7 +116,7 @@ const Login = () => {
       } else if (isPrincipalUser(loginUser)) {
         navigate("/principal/dashboard");
       } else if (isHodProfessor(loginUser)) {
-        navigate("/professor/dashboard");
+        navigate("/professor/department/dashboard");
       } else {
         toast.error("Access denied");
       }

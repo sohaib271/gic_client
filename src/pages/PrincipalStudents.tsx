@@ -34,6 +34,7 @@ const PrincipalStudents = () => {
       description: `Manage ${interStudents.length} students in 1st & 2nd Year`,
       count: interStudents.length,
       icon: Users,
+      path: "/principal/students/intermediate",
       color: "from-primary/20 to-primary/5",
       iconBg: "bg-primary/10 text-primary",
     },
@@ -42,6 +43,7 @@ const PrincipalStudents = () => {
       description: `Manage ${bsadpStudents.length} students in degree programs`,
       count: bsadpStudents.length,
       icon: GraduationCap,
+      path: "/principal/students/bs-adp",
       color: "from-accent/20 to-accent/5",
       iconBg: "bg-accent/10 text-accent-foreground",
     },
@@ -95,6 +97,7 @@ const PrincipalStudents = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 + i * 0.1 }}
+            onClick={() => card.path && navigate(card.path)}
             className={`group cursor-pointer rounded-2xl border border-border bg-gradient-to-br ${card.color} p-6 shadow-card transition-all hover:shadow-lg hover:-translate-y-1`}
           >
             <div className="mb-4 flex items-center justify-between">
