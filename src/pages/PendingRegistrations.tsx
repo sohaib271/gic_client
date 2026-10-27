@@ -301,7 +301,7 @@ const PendingRegistrations = () => {
                 <table className="w-full min-w-[900px]">
                   <thead>
                     <tr className="border-b border-border">
-                      {["Student ID", "Name", "Department", "Class", "Session", "Roll No", "Marks", "Actions"]
+                      {["Student ID", "Name", "Department", "Class", "Session", "Shift", "Marks", "Actions"]
                         .map((h) => (
                           <th key={h} className="p-3 text-left text-xs font-medium text-muted-foreground sm:text-sm">
                             {h}
@@ -323,7 +323,7 @@ const PendingRegistrations = () => {
                         </td>
                         <td className="p-3 text-xs sm:text-sm">{s.class ?? "—"}</td>
                         <td className="p-3 text-xs text-muted-foreground sm:text-sm">{s.session}</td>
-                        <td className="p-3 text-xs sm:text-sm">{s.rollNo}</td>
+                        <td className="p-3 text-xs sm:text-sm">{s.shift ?? "—"}</td>
                         <td className="p-3 text-xs text-muted-foreground sm:text-sm">
                           {s.matricMarks}
                           {s.interMarks != null ? ` / ${s.interMarks}` : ""}
@@ -453,7 +453,7 @@ const PendingRegistrations = () => {
                     <Detail label="Programme" value={viewing.category} />
                     <Detail label="Class / Semester" value={viewing.class} />
                     <Detail label="Session" value={viewing.session} />
-                    <Detail label="Roll No" value={viewing.rollNo} />
+                    <Detail label="Shift" value={viewing.shift} />
                     <Detail label="Subjects" value={subjectList(viewing.subjects)} />
                   </DetailGroup>
 

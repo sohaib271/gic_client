@@ -25,13 +25,13 @@ class RegistrationService {
     phone: string;
     address: string;
     city: string;
-    rollNo: number;
     matricMarks: number;
     interMarks?: number;
     doj: string;
     whatsappNumber?: string;
     subjects?: string;
-    gender?: string;
+    gender: string;
+    shift?: string;
   }) {
     const res = await fetch(`${API}/registration/apply`, {
       method: "POST",

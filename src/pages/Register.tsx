@@ -16,7 +16,14 @@ type LinkInfo = {
   session: string;
   remainingUses: number;
   requiresInterMarks: boolean;
+  // Backend now requires gender and offers a shift choice on the public form.
+  requiresGender?: boolean;
+  genders?: string[];
+  shifts?: string[];
+  defaultShift?: string;
 };
+
+const GENDER_LABELS: Record<string, string> = { M: "Male", F: "Female" };
 
 const initialForm = {
   name: "",
@@ -27,12 +34,14 @@ const initialForm = {
   phone: "",
   address: "",
   city: "",
-  rollNo: "",
   matricMarks: "",
   interMarks: "",
   doj: "",
   whatsappNumber: "",
-  gender: "M",
+  // Roll No is assigned later by the administration, so it is not collected on
+  // the public form any more. Gender must be chosen explicitly.
+  gender: "",
+  shift: "Morning",
   subjects: "",
   class: "I",
 };
@@ -59,6 +68,14 @@ const Register = () => {
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [key]: e.target.value }));
 
+  // Blank form with the link's defaults (shift + today's date) re-applied, so
+  // "Clear" and "Submit another application" stay valid for this link.
+  const blankForm = () => ({
+    ...initialForm,
+    shift: info?.defaultShift ?? initialForm.shift,
+    doj: new Date().toISOString().split("T")[0],
+  });
+
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
@@ -74,8 +91,14 @@ const Register = () => {
           return;
         }
         setInfo(res);
-        // Pre-fill the date of joining so most students don't have to hunt for it
-        setForm((f) => ({ ...f, doj: f.doj || new Date().toISOString().split("T")[0] }));
+        // Pre-fill the date of joining so most students don't have to hunt for it.
+        // The shift default comes from the link info so the API and the form can
+        // never disagree about it.
+        setForm((f) => ({
+          ...f,
+          doj: f.doj || new Date().toISOString().split("T")[0],
+          shift: res?.defaultShift ?? f.shift,
+        }));
       } catch {
         if (!cancelled) setLinkError("Could not load this registration link");
       } finally {
@@ -98,9 +121,12 @@ const Register = () => {
     }
     if (!form.address.trim()) return "Address is required";
     if (!form.city.trim()) return "City is required";
-    if (!form.rollNo || Number.isNaN(Number(form.rollNo)) || Number(form.rollNo) < 1) {
-      return "Roll No is required and starts from 1";
-    }
+    if (!form.gender) return "Gender is required";
+    const allowedGenders = info?.genders ?? ["M", "F"];
+    if (!allowedGenders.includes(form.gender)) return "Please select a valid gender";
+    if (!form.shift) return "Shift is required";
+    const allowedShifts = info?.shifts ?? ["Morning", "Evening"];
+    if (!allowedShifts.includes(form.shift)) return "Please select a valid shift";
     if (!form.matricMarks || Number.isNaN(Number(form.matricMarks))) {
       return "Matric marks are required";
     }
@@ -140,7 +166,6 @@ const Register = () => {
         phone: form.phone,
         address: form.address.trim(),
         city: form.city.trim(),
-        rollNo: Number(form.rollNo),
         matricMarks: Number(form.matricMarks),
         ...(info?.requiresInterMarks && { interMarks: Number(form.interMarks) }),
         // Only sent when the link did not lock the class; the service prefers
@@ -150,6 +175,7 @@ const Register = () => {
         ...(form.whatsappNumber && { whatsappNumber: form.whatsappNumber }),
         ...(form.subjects && { subjects: form.subjects }),
         gender: form.gender,
+        shift: form.shift,
       });
 
       if (res?.statusCode >= 400 || res?.error) {
@@ -160,7 +186,7 @@ const Register = () => {
       }
 
       setSuccess(res?.message ?? "Application submitted");
-      setForm(initialForm);
+      setForm(blankForm());
     } catch {
       setFormError("Network error, please try again");
     } finally {
@@ -272,8 +298,12 @@ const Register = () => {
                 value={form.gender}
                 onChange={set("gender")}
               >
-                <option value="M">Male</option>
-                <option value="F">Female</option>
+                <option value="">Select gender</option>
+                {(info.genders ?? ["M", "F"]).map((g) => (
+                  <option key={g} value={g}>
+                    {GENDER_LABELS[g] ?? g}
+                  </option>
+                ))}
               </select>
             </Field>
             <Field label="Date of Joining">
@@ -282,8 +312,14 @@ const Register = () => {
             <Field label="City">
               <Input value={form.city} onChange={set("city")} placeholder="Lahore" />
             </Field>
-            <Field label="Roll No">
-              <Input type="number" min={1} value={form.rollNo} onChange={set("rollNo")} />
+            <Field label="Shift">
+              <select className={selectClass} value={form.shift} onChange={set("shift")}>
+                {(info.shifts ?? ["Morning", "Evening"]).map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label="Matric Marks (out of 1200)">
               <Input
@@ -356,7 +392,7 @@ const Register = () => {
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={() => setForm(initialForm)} disabled={submitting}>
+            <Button variant="outline" onClick={() => setForm(blankForm())} disabled={submitting}>
               Clear
             </Button>
             <Button onClick={handleSubmit} disabled={submitting}>
