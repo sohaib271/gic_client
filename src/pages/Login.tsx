@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Lock, Mail, Eye, EyeOff, GraduationCap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Eye, EyeOff } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
+import loginHero from "@/assets/login/login-hero.jpg";
 import AuthService from "@/services/authService";
 import UserService from "@/services/userService";
 import { useDispatch } from "react-redux";
@@ -131,102 +130,108 @@ const Login = () => {
   if (loading || checkingSession) return <LoadingScreen />;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
-        <div className="rounded-2xl border border-border bg-card p-8 shadow-elevated">
-          {/* Logo */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", delay: 0.2 }}
-            className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary"
-          >
-            <GraduationCap className="h-8 w-8 text-primary-foreground" />
-          </motion.div>
+    <div className="relative min-h-screen w-full overflow-hidden bg-slate-950">
+      <img
+        src={loginHero}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#081726]/80 via-[#0b1f33]/35 to-[#0b1f33]/5" />
+      <div className="absolute inset-0 bg-slate-950/10" />
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mb-8 text-center"
-          >
-            <h1 className="font-display text-2xl font-bold text-foreground">Admin Login</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Sign in to access the admin panel
-            </p>
-          </motion.div>
+      <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center gap-10 px-5 py-12 lg:flex-row lg:justify-between lg:gap-16 lg:px-[5%] xl:pr-[10%]">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="max-w-2xl text-center lg:text-left"
+        >
+          <h1 className="font-body text-4xl font-bold tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)] sm:text-5xl lg:text-6xl xl:text-7xl">
+            Congratulations
+          </h1>
+          <p className="mt-3 font-body text-xl font-medium text-white/95 sm:text-2xl lg:mt-5 lg:text-3xl">
+            Welcome to GIC Portal!
+          </p>
+        </motion.div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <label className="mb-2 block text-sm font-medium text-foreground">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="w-full max-w-[430px] shrink-0 lg:mx-0"
+        >
+          <div className="rounded-[24px] border border-white/50 bg-white/45 p-8 shadow-[0_24px_70px_-20px_rgba(2,18,35,0.55)] backdrop-blur-2xl sm:p-9">
+            <h2 className="font-body text-[30px] font-bold leading-none text-slate-900">Login</h2>
+            <div className="mt-3 h-[2px] w-40 rounded-full bg-slate-700/50" />
+            <p className="mt-5 font-body text-[15px] text-slate-700">Welcome onboard with us!</p>
+
+            <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+              <div>
+                <label
+                  htmlFor="admin-email"
+                  className="mb-2 block font-body text-[15px] font-semibold text-slate-800"
+                >
+                  Admin Email ID
+                </label>
+                <input
+                  id="admin-email"
                   type="email"
-                  placeholder="admin@school.com"
+                  autoComplete="email"
+                  placeholder="Enter your username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className="h-12 w-full rounded-[10px] border border-transparent bg-[#E9F1FC] px-4 font-body text-[15px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-[#F2B01E] focus:ring-2 focus:ring-[#F2B01E]/40"
                 />
               </div>
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <label className="mb-2 block text-sm font-medium text-foreground">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              <div>
+                <label
+                  htmlFor="admin-password"
+                  className="mb-2 block font-body text-[15px] font-semibold text-slate-800"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="admin-password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 w-full rounded-[10px] border border-transparent bg-[#E9F1FC] px-4 pr-11 font-body text-[15px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-[#F2B01E] focus:ring-2 focus:ring-[#F2B01E]/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-800"
+                  >
+                    {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+                  </button>
+                </div>
               </div>
-            </motion.div>
 
-            {error && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-sm text-destructive"
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="font-body text-sm font-medium text-red-700"
+                >
+                  {error}
+                </motion.p>
+              )}
+
+              <button
+                type="submit"
+                className="mt-2 h-12 w-full rounded-[10px] bg-[#F2B01E] font-body text-[16px] font-bold text-slate-900 transition hover:bg-[#e3a40f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/40 active:translate-y-px"
               >
-                {error}
-              </motion.p>
-            )}
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-            >
-              <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
-                Sign In
-              </Button>
-            </motion.div>
-          </form>
-        </div>
-      </motion.div>
+                Log in
+              </button>
+            </form>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };
