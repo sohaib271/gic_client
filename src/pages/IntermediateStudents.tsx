@@ -1,8 +1,12 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Trash2, X, Eye, ArrowRight, Upload } from "lucide-react";
+import { Pencil, Trash2, X, Eye, ArrowRight, Upload, Receipt } from "lucide-react";
 import ConfirmDeleteModal from "@/components/ConfirmDelete"
+import UserAvatar from "@/components/UserAvatar";
+import { isIntermediateStudent } from "@/lib/studentProgram";
 import TableSkeleton from "@/components/TableSkeleton";
+import StudentFeeDetailModal from "@/components/StudentFeeDetailModal";
+import ActiveUserToggle from "@/components/ActiveUserToggle";
 import {
   StudentFormField as Field,
 } from "@/components/students/StudentFormPrimitives";
@@ -31,6 +35,7 @@ const defaultForm = {
   department: "",
   city: "",
   session: "",
+  rollNo: "",
   class: "I",
   subjects: "",
   matricMarks: "",
@@ -49,7 +54,7 @@ const IntermediateStudents = () => {
   );
   // ✅ Derived — no separate state needed, always in sync with API data
   const intermediateUsers = useMemo(() =>
-    users?.filter((u: any) => u?.category === "intermediate"),
+    users?.filter((u: any) => u?.role === "student" && isIntermediateStudent(u)),
     [users]
   );
   const [search, setSearch] = useState("");
@@ -113,6 +118,9 @@ const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
   // const [localStudents, setLocalStudents] = useState<any[]>([]);
   const [detailStudent, setDetailStudent] = useState<any | null>(null);
   const [form, setForm] = useState(defaultForm);
+  
+  // ✅ Fee detail modal state
+  const [feeDetailStudent, setFeeDetailStudent] = useState<any | null>(null);
 
   // ✅ All students = server data + any locally added ones this session
   // const allStudents = useMemo(() => [...intermediateUsers, ...localStudents], [intermediateUsers, localStudents]);
@@ -165,6 +173,7 @@ const handleEditStudent = async () => {
     class:       form.class,
     department:  form.department,
     session:     form.session,
+    rollNo:      form.rollNo ? Number(form.rollNo) : undefined,
     matricMarks: Number(form.matricMarks),
     subjects:    form.subjects.split(",").map((s) => s.trim()).filter(Boolean),
     ...(form.whatsappNumber && { whatsappNumber: form.whatsappNumber }),
@@ -208,6 +217,7 @@ const handleEditStudent = async () => {
     setSaving(true);
 
     const payload = {
+      role: "student",
       name: form.name,
       lastName: form.lastName,
       email: form.email,
@@ -221,6 +231,7 @@ const handleEditStudent = async () => {
       class: form.class,
       department: form.department,
       session: form.session,
+      rollNo: Number(form.rollNo),
       matricMarks: Number(form.matricMarks),
       subjects: form.subjects.split(",").map((s) => s.trim()).filter(Boolean),
       ...(form.whatsappNumber && { whatsappNumber: form.whatsappNumber }),
@@ -329,7 +340,7 @@ const handleEditStudent = async () => {
         <table className="w-full min-w-[700px]">
           <thead>
             <tr className="border-b border-border">
-              {["S.No", "Student ID", "Name", "Last Name", "Class", "DOJ", "Actions"].map((h) => (
+              {["S.No", "Photo", "Student ID", "Name", "Last Name", "Class", "DOJ", "Actions"].map((h) => (
                 <th key={h} className="table-header p-4 text-left text-sm font-medium text-muted-foreground">{h}</th>
               ))}
             </tr>
@@ -340,6 +351,9 @@ const handleEditStudent = async () => {
                 transition={{ delay: i * 0.03 }}
                 className="border-b border-border last:border-0 hover:bg-secondary/50 transition-colors">
                 <td className="p-4 text-sm">{String(i + 1).padStart(2, "0")}</td>
+                <td className="p-4">
+                  <UserAvatar image={s?.image} name={s?.name} lastName={s?.lastName} className="h-10 w-10" />
+                </td>
                 <td className="p-4 text-sm font-medium">{s?.specialId}</td>
                 <td className="p-4 text-sm">{s?.name}</td>
                 <td className="p-4 text-sm text-muted-foreground">{s?.lastName}</td>
@@ -350,6 +364,11 @@ const handleEditStudent = async () => {
                     <button onClick={() => setDetailStudent(s)}
                       className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
                       <Eye className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => setFeeDetailStudent(s)}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-accent-foreground transition-colors"
+                      title="View Fee Details">
+                      <Receipt className="h-4 w-4" />
                     </button>
                   <button
   onClick={() => {
@@ -366,6 +385,7 @@ const handleEditStudent = async () => {
       department:     s?.department?._id ?? "",
       city:           s?.city ?? "",
       session:        s?.session ?? "",
+      rollNo:         s?.rollNo?.toString() ?? "",
       class:          s?.class ?? "I",
       subjects:       s?.subjects?.join(", ") ?? "",
       matricMarks:    s?.matricMarks?.toString() ?? "",
@@ -381,12 +401,13 @@ const handleEditStudent = async () => {
   className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
   <Trash2 className="h-4 w-4" />
 </button>
+                    <ActiveUserToggle user={s} refetch={refetch} />
                   </div>
                 </td>
               </motion.tr>
             ))}
             {displayed?.length === 0 && (
-              <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">No students found</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-sm text-muted-foreground">No students found</td></tr>
             )}
           </tbody>
         </table>
@@ -515,6 +536,9 @@ const handleEditStudent = async () => {
                   <Field label="City">
                     <Input value={form.city} onChange={set("city")} placeholder="Lahore" />
                   </Field>
+                  <Field label="Roll No">
+                    <Input type="number" value={form.rollNo} onChange={set("rollNo")} placeholder="1" />
+                  </Field>
                   <Field label="Class">
                     <select className={selectClass} value={form.class} onChange={set("class")}>
                       <option value="I">1st Year</option>
@@ -562,9 +586,17 @@ const handleEditStudent = async () => {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* ✅ Student Fee Detail Modal */}
+      <StudentFeeDetailModal
+        open={!!feeDetailStudent}
+        student={feeDetailStudent}
+        onClose={() => setFeeDetailStudent(null)}
+      />
+
       <ConfirmDeleteModal
   open={!!deleteTarget}
-  studentName={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
+  name={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
   deleting={deleting}
   onConfirm={handleDeleteConfirm}
   onCancel={() => setDeleteTarget(null)}

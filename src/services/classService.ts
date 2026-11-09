@@ -237,7 +237,7 @@ static async markBulkAttendance(data: {
   classId: string;
   teacherId: string;
   date: string;
-  lectureNumber?: number;
+  lectureNumber: number;
   records: { studentId: string; attendenceStatus: string }[];
 }) {
   const res = await fetch(`${API}/attendance/mark-bulk`, {
@@ -254,6 +254,7 @@ static async updateStudentAttendance(attendanceId: string, data: {
   teacherId: string;
   studentId: string;
   attendenceStatus: string;
+  lectureNumber: number;
 }) {
   const res = await fetch(`${API}/attendance/update/${attendanceId}`, {
     method: "PATCH",
@@ -294,6 +295,15 @@ static async getMyAttendanceHistory(teacherId: string, classId?: string) {
   // classService.ts — add these
 static async getAttendanceByDate(classId: string, date: string) {
   const res = await fetch(`${API}/attendance/class/${classId}?date=${date}`, {
+    method: "GET",
+    headers: this.authHeaders(),
+    credentials:"include",
+  });
+  return res.json();
+}
+
+static async getStudentProgress(studentId: string) {
+  const res = await fetch(`${API}/attendance/student-progress/${studentId}`, {
     method: "GET",
     headers: this.authHeaders(),
     credentials:"include",

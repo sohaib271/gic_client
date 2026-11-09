@@ -4,15 +4,16 @@ import { useDispatch, useSelector } from "react-redux";
 import LoadingScreen from "@/components/LoadingScreen";
 import UserService from "@/services/userService";
 import { clearUser, setUser } from "@/store/userSlice";
-import { isHodProfessor, isValidUserResponse, normalizeRole } from "@/lib/auth";
+import { isHodProfessor, isPrincipalUser, isValidUserResponse, normalizeRole } from "@/lib/auth";
 
 interface RequireAuthProps {
   children: React.ReactNode;
-  role: "admin" | "proff";
+  role?: "admin" | "proff" | "principal";
   requireHod?: boolean;
+  requirePrincipal?: boolean;
 }
 
-const RequireAuth = ({ children, role, requireHod = false }: RequireAuthProps) => {
+const RequireAuth = ({ children, role, requireHod = false, requirePrincipal = false }: RequireAuthProps) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: any) => state.user);
   const [checking, setChecking] = useState(true);
@@ -28,7 +29,19 @@ const RequireAuth = ({ children, role, requireHod = false }: RequireAuthProps) =
         if (!isValidUserResponse(currentUser)) {
           throw new Error("Invalid session");
         }
-        if (normalizeRole(currentUser.role) !== role || (requireHod && !isHodProfessor(currentUser))) {
+        if (role === "admin" && normalizeRole(currentUser.role) !== "admin") {
+          throw new Error("Access denied");
+        }
+        if (role === "proff" && normalizeRole(currentUser.role) !== "proff") {
+          throw new Error("Access denied");
+        }
+        if (role === "principal" && !isPrincipalUser(currentUser)) {
+          throw new Error("Access denied");
+        }
+        if (requireHod && !isHodProfessor(currentUser)) {
+          throw new Error("Access denied");
+        }
+        if (requirePrincipal && !isPrincipalUser(currentUser)) {
           throw new Error("Access denied");
         }
         if (!cancelled) {
@@ -49,7 +62,7 @@ const RequireAuth = ({ children, role, requireHod = false }: RequireAuthProps) =
     return () => {
       cancelled = true;
     };
-  }, [dispatch, requireHod, role]);
+  }, [dispatch, requireHod, requirePrincipal, role]);
 
   if (checking) return <LoadingScreen />;
   if (!user || !valid) return <Navigate to="/" replace />;

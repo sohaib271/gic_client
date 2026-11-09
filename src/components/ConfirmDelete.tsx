@@ -4,13 +4,15 @@ import { AlertTriangle, X } from "lucide-react";
 
 interface Props {
   open: boolean;
-  studentName: string;
+  title?: string;
+  name: string;
+  detail?: string;
   deleting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-const ConfirmDeleteModal = ({ open, studentName, deleting, onConfirm, onCancel }: Props) => (
+const ConfirmDeleteModal = ({ open, title = "Delete Student", name, detail, deleting, onConfirm, onCancel }: Props) => (
   <AnimatePresence>
     {open && (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -25,7 +27,7 @@ const ConfirmDeleteModal = ({ open, studentName, deleting, onConfirm, onCancel }
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
               <div>
-                <h3 className="font-display text-base font-bold text-foreground">Delete Student</h3>
+                <h3 className="font-display text-base font-bold text-foreground">{title}</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">This action cannot be undone</p>
               </div>
             </div>
@@ -35,8 +37,8 @@ const ConfirmDeleteModal = ({ open, studentName, deleting, onConfirm, onCancel }
           </div>
 
           <p className="text-sm text-foreground mb-6">
-            Are you sure you want to delete <span className="font-semibold">{studentName}</span>?
-            All their records will be permanently removed.
+            Are you sure you want to delete <span className="font-semibold">{name}</span>?
+            {detail ?? " All their records will be permanently removed."}
           </p>
 
           <div className="flex gap-3">

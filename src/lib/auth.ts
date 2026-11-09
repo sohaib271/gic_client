@@ -14,3 +14,6 @@ export const isAdminUser = (user: any) => normalizeRole(user?.role) === "admin";
 
 export const isHodProfessor = (user: any) =>
   normalizeRole(user?.role) === "proff" && isTruthyFlag(user?.isHod);
+
+export const isPrincipalUser = (user: any) =>
+  normalizeRole(user?.role) === "principal" || isTruthyFlag(user?.isPrincipal);
