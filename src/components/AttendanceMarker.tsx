@@ -34,9 +34,18 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
 
   const [saving,           setSaving]           = useState(false);
   const [saved,            setSaved]            = useState(false);
-  const [existingRecords,  setExistingRecords]  = useState<any[]>([]);
+  const [allRecords,       setAllRecords]       = useState<any[]>([]);
   const [loadingExisting,  setLoadingExisting]  = useState(false);
   const [hasExisting,      setHasExisting]      = useState(false);
+  // ✅ Backend requires lectureNumber (period within the day) on both mark & update
+  const [lectureNumber,    setLectureNumber]    = useState(1);
+
+  // The GET returns every lecture of the day, so scope everything to the
+  // selected period — the unique index is (class, teacher, date, lecture, student).
+  const existingRecords = useMemo(
+    () => allRecords.filter((r: any) => r?.lectureNumber === lectureNumber),
+    [allRecords, lectureNumber]
+  );
 
   // ── Update modal state
   const [updateModal,   setUpdateModal]   = useState<{ record: any; student: any } | null>(null);
@@ -49,6 +58,27 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
   const [expandedDate,   setExpandedDate]   = useState<string | null>(null);
 
   const studentPagination = usePagination(students, 12);
+
+  // ✅ Prefer the class's real schedule for the selected weekday, so the teacher
+  // picks the actual period instead of guessing a number.
+  const lectureOptions = useMemo(() => {
+    if (!date) return [];
+    const dayName = new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { weekday: "long" });
+
+    const slots = (classData?.assignes ?? [])
+      .filter((a: any) => (a?.teacherId?._id ?? a?.teacherId)?.toString() === teacherId?.toString())
+      .flatMap((a: any) => a?.schedule ?? [])
+      .filter((s: any) => (s?.day ?? "").trim().toLowerCase() === dayName.toLowerCase())
+      .sort((a: any, b: any) => (a?.startTime ?? "").localeCompare(b?.startTime ?? ""));
+
+    return slots
+      .map((s: any, i: number) => ({
+        // Fall back to position in the day when legacy schedules lack the field
+        value: typeof s?.lectureNumber === "number" ? s.lectureNumber : i + 1,
+        label: `Lecture ${typeof s?.lectureNumber === "number" ? s.lectureNumber : i + 1}${s?.startTime ? ` (${s.startTime}–${s.endTime})` : ""}`,
+      }))
+      .sort((a: any, b: any) => a.value - b.value);
+  }, [classData, date, teacherId]);
 
   const historyGroups = useMemo(() => {
     return Object.entries(history)
@@ -76,32 +106,37 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
       try {
         const res = await ClassService.getClassAttendanceByTeacher(classData._id, teacherId, date);
         if (!cancelled && res?.records) {
-          setExistingRecords(res.records);
-          setHasExisting(res.records.length > 0);
-
-          // ✅ Pre-fill attendance state from existing records
-          if (res.records.length > 0) {
-            const prefilled: Record<string, AttendanceStatus> = {};
-            res.records.forEach((r: any) => {
-              const sid = typeof r.studentId === "object" ? r.studentId._id : r.studentId;
-              prefilled[sid] = r.attendenceStatus as AttendanceStatus;
-            });
-            setAttendance(prefilled);
-          } else {
-            // Reset to all Present for new date
-            const init: Record<string, AttendanceStatus> = {};
-            students.forEach((s) => { init[s?._id || s] = "P"; });
-            setAttendance(init);
-          }
-          setSaved(false);
+          setAllRecords(res.records);
         }
-      } catch { /* silently fail */ }
+      } catch {
+        toast.error("Could not load existing attendance");
+      }
       finally { if (!cancelled) setLoadingExisting(false); }
     };
 
     load();
     return () => { cancelled = true; };
-  }, [date, classData?._id]);
+  }, [date, classData?._id, teacherId]);
+
+  // ✅ Re-derive "already marked" + prefill whenever the period changes
+  useEffect(() => {
+    setHasExisting(existingRecords.length > 0);
+
+    if (existingRecords.length > 0) {
+      const prefilled: Record<string, AttendanceStatus> = {};
+      existingRecords.forEach((r: any) => {
+        const sid = typeof r.studentId === "object" ? r.studentId._id : r.studentId;
+        prefilled[sid] = r.attendenceStatus as AttendanceStatus;
+      });
+      setAttendance(prefilled);
+    } else {
+      // Reset to all Present for a new date/period
+      const init: Record<string, AttendanceStatus> = {};
+      students.forEach((s) => { init[s?._id || s] = "P"; });
+      setAttendance(init);
+    }
+    setSaved(false);
+  }, [existingRecords]);
 
   // ── Load history when tab switches
   useEffect(() => {
@@ -140,6 +175,10 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
   // ── Save (bulk mark)
   const handleSave = async () => {
     if (!date) { toast.error("Please select a date"); return; }
+    if (!Number.isInteger(lectureNumber) || lectureNumber < 1) {
+      toast.error("Lecture number must be a whole number starting from 1");
+      return;
+    }
     if (hasExisting) {
       toast.error("Attendance already marked for this date. Use the update button per student.");
       return;
@@ -153,10 +192,14 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
         classId:   classData._id,
         teacherId,
         date,
+        lectureNumber,
         records,
       });
       if (res?.statusCode >= 400 || res?.error) {
-        toast.error(res?.message ?? "Failed to save attendance");
+        // NestJS ValidationPipe returns errors as a string array under `message`
+        const msg = res?.message;
+        if (Array.isArray(msg)) msg.forEach((m: string) => toast.error(m));
+        else toast.error(msg ?? "Failed to save attendance");
         return;
       }
       toast.success("Attendance saved successfully");
@@ -184,16 +227,19 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
                               ? updateModal.record.studentId._id
                               : updateModal.record.studentId,
           attendenceStatus: updateStatus,
+          lectureNumber,
         }
       );
       if (res?.statusCode >= 400 || res?.error) {
-        toast.error(res?.message ?? "Update failed");
+        const msg = res?.message;
+        if (Array.isArray(msg)) msg.forEach((m: string) => toast.error(m));
+        else toast.error(msg ?? "Update failed");
         return;
       }
       toast.success("Attendance updated");
 
       // ✅ Update local state to reflect change
-      setExistingRecords((prev) =>
+      setAllRecords((prev) =>
         prev.map((r) => r._id === updateModal.record._id ? { ...r, attendenceStatus: updateStatus } : r)
       );
       const sid = typeof updateModal.record.studentId === "object"
@@ -207,7 +253,7 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
     }
   };
 
-  // ── Find existing record for a student on current date
+  // ── Find existing record for a student on the selected date + lecture
   const getExistingRecord = (studentId: string) =>
     existingRecords.find((r: any) => {
       const sid = typeof r.studentId === "object" ? r.studentId._id : r.studentId;
@@ -249,6 +295,32 @@ const AttendanceMarker = ({ classData, teacherId, onBack }: Props) => {
               <input type="date" value={date}
                 onChange={(e) => { setDate(e.target.value); setSaved(false); }}
                 className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+
+            {/* ✅ Lecture / period — required by the backend, one record per student per period */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-foreground">Lecture #</label>
+              {lectureOptions.length > 0 ? (
+                <select
+                  value={lectureNumber}
+                  onChange={(e) => { setLectureNumber(Number(e.target.value)); setSaved(false); }}
+                  className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {lectureOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="number"
+                  min={1}
+                  value={lectureNumber}
+                  onChange={(e) => { setLectureNumber(Math.max(1, Number(e.target.value) || 1)); setSaved(false); }}
+                  className="w-20 rounded-lg border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
             </div>
 
             {/* ✅ Show existing badge */}

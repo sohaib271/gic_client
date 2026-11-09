@@ -1,11 +1,20 @@
-import React from "react";
-import { LayoutDashboard, School, LogOut, X, GraduationCap, Users, Building2, Briefcase } from "lucide-react";
+import React, { useState } from "react";
+import { LayoutDashboard, School, LogOut, X, GraduationCap, Users, Building2, Briefcase, Bell, Settings, UserCircle2, UserPlus } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AuthService from "@/services/authService";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { clearUser } from "@/store/userSlice";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const baseNavItems = [
   { to: "/professor/dashboard", icon: LayoutDashboard, label: "My Timetable" },
@@ -13,9 +22,13 @@ const baseNavItems = [
 ];
 
 const hodNavItems = [
+  { to: "/professor/department/dashboard", icon: LayoutDashboard, label: "Department Dashboard" },
   { to: "/professor/department/classes", icon: Building2, label: "Department Classes" },
   { to: "/professor/department/faculty", icon: Briefcase, label: "Department Faculty" },
   { to: "/professor/department/students", icon: Users, label: "Department Students" },
+  { to: "/professor/department/student-registration", icon: UserPlus, label: "Student Registration" },
+  { to: "/professor/profile", icon: UserCircle2, label: "Profile" },
+  { to: "/professor/settings", icon: Settings, label: "Settings" },
 ];
 
 interface Props {
@@ -27,10 +40,17 @@ const ProfessorSidebar = ({ isOpen, onToggle }: Props) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state?.user.user);
-  const navItems = user?.isHod ? [...baseNavItems, ...hodNavItems] : baseNavItems;
+  const navItems = user?.isHod
+    ? [{ to: "/professor/department/dashboard", icon: LayoutDashboard, label: "Department Dashboard" }, ...baseNavItems, ...hodNavItems.filter((i) => i.to !== "/professor/department/dashboard")]
+    : baseNavItems;
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  async function signOut() {
+  async function handleLogout() {
+    setLoggingOut(true);
     const res = await AuthService.logout(user?._id);
+    setLoggingOut(false);
+    setLogoutOpen(false);
     if (res?.message !== "Logged Out") return toast.error("Invalid user");
     toast.success(res?.message);
     dispatch(clearUser());
@@ -102,12 +122,31 @@ const ProfessorSidebar = ({ isOpen, onToggle }: Props) => {
         </nav>
 
         <div className="p-3">
-          <button onClick={signOut} className="sidebar-link text-destructive cursor-pointer">
+          <button onClick={() => setLogoutOpen(true)} className="sidebar-link text-destructive cursor-pointer">
             <LogOut className="h-5 w-5" />
             Logout
           </button>
         </div>
       </aside>
+
+      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Logout</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to logout from your account?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setLogoutOpen(false)} disabled={loggingOut}>
+              No, Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleLogout} disabled={loggingOut}>
+              {loggingOut ? "Logging out..." : "Yes, Logout"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

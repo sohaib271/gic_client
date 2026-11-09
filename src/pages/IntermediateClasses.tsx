@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useDepartments } from "@/hooks/useDepartments";
 import { useUsers } from "@/hooks/useUsers";
 import ClassService from "@/services/classService";
+import { isIntermediateStudent } from "@/lib/studentProgram";
 import { useClasses } from "@/hooks/useClasses";
 import ClassDetailView from "@/components/ClassDetailView";
 import { WEEKDAYS as DAYS } from "@/lib/academic";
@@ -42,7 +43,7 @@ const IntermediateClasses = () => {
     return {
       profUsers: data.filter((u: any) => u.role === "proff"),
       interStudents: data.filter(
-        (u: any) => u.role === "student" && u.category === "intermediate",
+        (u: any) => u.role === "student" && isIntermediateStudent(u),
       ),
     };
   }, [data]);
