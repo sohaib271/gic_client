@@ -1,10 +1,5 @@
-import DataSourceEmptyState from "@/components/DataSourceEmptyState";
+import ScoreClasses from "@/components/ScoreClasses";
 
-const BsAdpScore = () => (
-  <DataSourceEmptyState
-    title="BS / ADP Score"
-    description="Scores will appear here after a score data source is connected."
-  />
-);
+const BsAdpScore = () => <ScoreClasses category="bs_adp" heading="BS / ADP Score" />;
 
 export default BsAdpScore;

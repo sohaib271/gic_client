@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useDepartments } from "@/hooks/useDepartments";
 import { useUsers } from "@/hooks/useUsers";
 import ClassService from "@/services/classService";
+import { isBsAdpStudent } from "@/lib/studentProgram";
 import { useClasses } from "@/hooks/useClasses";
 import ClassDetailView from "@/components/ClassDetailView";
 import { SEMESTERS as ALL_SEMESTERS, WEEKDAYS as DAYS } from "@/lib/academic";
@@ -35,9 +36,7 @@ const BsAdpClasses = () => {
     if (!data) return { profUsers: [], bsAdpStudents: [] };
     return {
       profUsers:     data.filter((u: any) => u.role === "proff"),
-      bsAdpStudents: data.filter((u: any) =>
-        u.role === "student" && (u.category === "bs" || u.category === "adp")
-      ),
+      bsAdpStudents: data.filter((u: any) => u.role === "student" && isBsAdpStudent(u)),
     };
   }, [data]);
 

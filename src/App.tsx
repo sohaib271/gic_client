@@ -12,9 +12,14 @@ import { persistor, store } from "./store/store";
 // Login is the entry route — keep eager so first paint isn't delayed by a chunk fetch.
 import Login from "./pages/Login";
 
+// Public self-registration. Also eager: a student arriving from a shared link
+// should see the form immediately, and this route needs no auth.
+import Register from "./pages/Register";
+
 // Layouts and all inner pages are code-split to shrink the initial bundle.
 const AdminLayout = lazy(() => import("./components/AdminLayout"));
 const ProfessorLayout = lazy(() => import("./components/ProfessorLayout"));
+const PrincipalLayout = lazy(() => import("./components/PrincipalLayout"));
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Students = lazy(() => import("./pages/Students"));
@@ -36,12 +41,48 @@ const Faculty = lazy(() => import("./pages/Faculty"));
 const Classes = lazy(() => import("./pages/Classes"));
 const IntermediateClasses = lazy(() => import("./pages/IntermediateClasses"));
 const BsAdpClasses = lazy(() => import("./pages/BsAdpClasses"));
+const Fee = lazy(() => import("./pages/Fee"));
+const IntermediateFee = lazy(() => import("./pages/IntermediateFee"));
+const BsAdpFee = lazy(() => import("./pages/BsAdpFee"));
+const Settings = lazy(() => import("./pages/Settings"));
+const LeaveManagement = lazy(() => import("./pages/LeaveManagement"));
+const AppSettings = lazy(() => import("./pages/AppSettings"));
+const SendAlert = lazy(() => import("./pages/SendAlert"));
+const Survey = lazy(() => import("./pages/Survey"));
+const ActiveUsers = lazy(() => import("./pages/ActiveUsers"));
+const Announcements = lazy(() => import("./pages/Announcements"));
+const Security = lazy(() => import("./pages/Security"));
+const StudentProgress = lazy(() => import("./pages/StudentProgress"));
+const HodSettings = lazy(() => import("./pages/HodSettings"));
+const HodStudentProgress = lazy(() => import("./pages/HodStudentProgress"));
+const HodDepartmentFee = lazy(() => import("./pages/HodDepartmentFee"));
+const TodayAttendance = lazy(() => import("./pages/TodayAttendance"));
+const HodSecurity = lazy(() => import("./pages/HodSecurity"));
+const HodStudentLeaves = lazy(() => import("./pages/HodStudentLeaves"));
+const PendingRegistrations = lazy(() => import("./pages/PendingRegistrations"));
+const HodAppSetting = lazy(() => import("./pages/HodAppSetting"));
+const MidtermTests = lazy(() => import("./pages/MidtermTests"));
+const MidtermClassSchedule = lazy(() => import("./pages/MidtermClassSchedule"));
+const MidtermResults = lazy(() => import("./pages/MidtermResults"));
+const MidtermClassResults = lazy(() => import("./pages/MidtermClassResults"));
+const UpdateStudent = lazy(() => import("./pages/UpdateStudent"));
+const UpdateClassStudents = lazy(() => import("./pages/UpdateClassStudents"));
 const ProfessorDashboard = lazy(() => import("./pages/ProfessorDashboard"));
+const PrincipalDashboard = lazy(() => import("./pages/PrincipalDashboard"));
+const PrincipalFaculty = lazy(() => import("./pages/PrincipalFaculty"));
+const PrincipalStudents = lazy(() => import("./pages/PrincipalStudents"));
+const PrincipalClasses = lazy(() => import("./pages/PrincipalClasses"));
+const PrincipalDepartments = lazy(() => import("./pages/PrincipalDepartments"));
+const DepartmentDetail = lazy(() => import("./pages/DepartmentDetail"));
+const PrincipalSettings = lazy(() => import("./pages/PrincipalSettings"));
 const ProfessorClasses = lazy(() => import("./pages/ProfessorClasses"));
 const HodClasses = lazy(() => import("./pages/HodClasses"));
 const HodFaculty = lazy(() => import("./pages/HodFaculty"));
 const HodStudents = lazy(() => import("./pages/HodStudents"));
+const HodDashboard = lazy(() => import("./pages/HodDashboard"));
+  const HodProfile = lazy(() => import("./pages/HodProfile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Preview = lazy(() => import("./pages/__ResultPreview"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +105,8 @@ const App = () => (
             <Suspense fallback={<LoadingScreen />}>
             <Routes>
               <Route path="/" element={<Login />} />
+              <Route path="/__preview" element={<Preview />} />
+              <Route path="/register/:token" element={<Register />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
@@ -86,14 +129,68 @@ const App = () => (
                 <Route path="classes" element={<Classes />} />
                 <Route path="classes/intermediate" element={<IntermediateClasses />} />
                 <Route path="classes/bs-adp" element={<BsAdpClasses />} />
+                <Route path="fee" element={<Fee />} />
+                <Route path="fee/intermediate" element={<IntermediateFee />} />
+                <Route path="fee/bs-adp" element={<BsAdpFee />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="leave-management" element={<LeaveManagement />} />
+                <Route path="app-settings" element={<AppSettings />} />
+                <Route path="send-alert" element={<SendAlert />} />
+                <Route path="survey" element={<Survey />} />
+                <Route path="active-users" element={<ActiveUsers />} />
+                <Route path="student-registration" element={<PendingRegistrations />} />
+                <Route path="announcements" element={<Announcements />} />
+                <Route path="security" element={<Security />} />
+                <Route path="student-progress" element={<StudentProgress />} />
               </Route>
               <Route path="/professor" element={<ProfessorLayout />}>
-                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route index element={<Navigate to="department/dashboard" replace />} />
                 <Route path="dashboard" element={<ProfessorDashboard />} />
                 <Route path="classes" element={<ProfessorClasses />} />
+                <Route path="department/dashboard" element={<HodDashboard />} />
                 <Route path="department/classes" element={<HodClasses />} />
                 <Route path="department/faculty" element={<HodFaculty />} />
                 <Route path="department/students" element={<HodStudents />} />
+                <Route path="department/student-registration" element={<PendingRegistrations />} />
+                <Route path="profile" element={<HodProfile />} />
+                <Route path="settings" element={<HodSettings />} />
+                <Route path="settings/student-progress" element={<HodStudentProgress />} />
+                <Route path="settings/department-fee" element={<HodDepartmentFee />} />
+                <Route path="settings/today-attendance" element={<TodayAttendance />} />
+                <Route path="settings/student-leaves" element={<HodStudentLeaves />} />
+                <Route path="settings/leave-types" element={<LeaveManagement backTo="/professor/settings" />} />
+                <Route path="settings/app-setting" element={<HodAppSetting />} />
+                <Route path="settings/midterm-tests" element={<MidtermTests />} />
+                <Route path="settings/midterm-tests/:classId" element={<MidtermClassSchedule />} />
+                <Route path="settings/midterm-results" element={<MidtermResults />} />
+                <Route path="settings/midterm-results/:classId" element={<MidtermClassResults />} />
+                <Route path="settings/update-students" element={<UpdateStudent />} />
+                <Route path="settings/update-students/:classId" element={<UpdateClassStudents />} />
+                <Route path="settings/security" element={<HodSecurity />} />
+              </Route>
+              <Route path="/principal" element={<PrincipalLayout />}>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<PrincipalDashboard />} />
+                <Route path="faculty" element={<PrincipalFaculty />} />
+                <Route path="students" element={<PrincipalStudents />} />
+                <Route path="students/intermediate" element={<IntermediateStudents />} />
+                <Route path="students/bs-adp" element={<BsAdpStudents />} />
+                <Route path="classes" element={<PrincipalClasses />} />
+                <Route path="departments" element={<PrincipalDepartments />} />
+                <Route path="departments/:departmentId" element={<DepartmentDetail />} />
+                <Route path="settings" element={<PrincipalSettings />} />
+                <Route
+                  path="settings/security"
+                  element={<Security backPath="/principal/settings" roleName="principal profile" />}
+                />
+                <Route
+                  path="settings/leave-types"
+                  element={<LeaveManagement backTo="/principal/settings" readOnly />}
+                />
+                <Route
+                  path="settings/app-preferences"
+                  element={<AppSettings backTo="/principal/settings" readOnly />}
+                />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

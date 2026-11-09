@@ -9,6 +9,7 @@ interface CommonStudentForm {
   city: string;
   department: string;
   session: string;
+  rollNo?: string;
   matricMarks: string;
   whatsappNumber: string;
 }
@@ -31,6 +32,9 @@ export const getCommonStudentValidationError = (
   if (!form.city.trim()) return "City is required";
   if (!form.department) return "Department is required";
   if (!form.session.trim()) return "Session is required";
+  // ✅ Backend requires rollNo as a number on create — fail fast with a clear message
+  if (!isEdit && !form.rollNo?.trim()) return "Roll No is required";
+  if (form.rollNo?.trim() && Number.isNaN(Number(form.rollNo))) return "Roll No must be a number";
   if (!form.matricMarks || Number.isNaN(Number(form.matricMarks))) return "Valid matric marks are required";
   if (Number(form.matricMarks) < 0 || Number(form.matricMarks) > maxMatricMarks) {
     return `Matric marks must be between 0 and ${maxMatricMarks}`;

@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Briefcase, Check, Clock, Eye, History, Plus, UserCircle, X } from "lucide-react";
+import { ArrowLeft, Briefcase, Check, Clock, Eye, History, Plus, Trash2, X } from "lucide-react";
 import { useSelector } from "react-redux";
 import TableSkeleton from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useUsers } from "@/hooks/useUsers";
 import { useTeacherAttendanceHistory } from "@/hooks/useTeacherAttendance";
 import FacultyDetailView from "@/components/FacultyDetailView";
+import UserAvatar from "@/components/UserAvatar";
 import UserService from "@/services/userService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,7 @@ const defaultForm = {
   cnic: "",
   subjects: "",
   qualification: "",
+  is_CTI: false,
 };
 
 const Field = ({
@@ -119,6 +122,7 @@ const HodFaculty = () => {
         isHod: false,
         subjects: form.subjects.split(",").map((s) => s.trim()).filter(Boolean),
         qualification: form.qualification,
+        is_CTI: form.is_CTI,
       });
 
       if (res?.error || res?.statusCode >= 400) {
@@ -142,7 +146,7 @@ const HodFaculty = () => {
     return <div className="p-6 text-sm text-muted-foreground">Access denied.</div>;
   }
 
-  if (isLoading) return <TableSkeleton rows={5} cols={5} />;
+  if (isLoading) return <TableSkeleton rows={5} cols={7} />;
 
   if (showTeacherHistory && selectedTeacher) {
     return (
@@ -160,9 +164,12 @@ const HodFaculty = () => {
         </div>
 
         <div className="flex items-center gap-3 border-b border-border bg-secondary/20 px-5 py-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-            <UserCircle className="h-5 w-5 text-primary" />
-          </div>
+          <UserAvatar
+            image={selectedTeacher?.image}
+            name={selectedTeacher?.name}
+            lastName={selectedTeacher?.lastName}
+            className="h-9 w-9"
+          />
           <div>
             <p className="text-sm font-semibold text-foreground">
               {selectedTeacher.name} {selectedTeacher.lastName}
@@ -278,7 +285,7 @@ const HodFaculty = () => {
         <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b border-border">
-              {["S.No", "First Name", "Last Name", "Date of Joining", "Subjects", "Action"].map((h) => (
+              {["S.No", "Photo", "First Name", "Last Name", "Date of Joining", "Subjects", "Action"].map((h) => (
                 <th key={h} className="p-3 sm:p-4 text-left text-xs sm:text-sm font-medium text-muted-foreground">
                   {h}
                 </th>
@@ -291,6 +298,9 @@ const HodFaculty = () => {
                 transition={{ delay: i * 0.03 }}
                 className="border-b border-border last:border-0 hover:bg-secondary/40 transition-colors">
                 <td className="p-3 sm:p-4 text-xs sm:text-sm">{String((facultyPagination.page - 1) * facultyPagination.pageSize + i + 1).padStart(2, "0")}</td>
+                <td className="p-3 sm:p-4">
+                  <UserAvatar image={m?.image} name={m?.name} lastName={m?.lastName} className="h-10 w-10" />
+                </td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm font-medium">{m?.name}</td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm">{m?.lastName}</td>
                 <td className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">{m?.doj}</td>
@@ -298,29 +308,33 @@ const HodFaculty = () => {
                   {Array.isArray(m?.subjects) ? m.subjects.join(", ") : m?.subjects ?? "—"}
                 </td>
                 <td className="p-3 sm:p-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setDetail(m)}
-                      className="gap-1.5 text-primary hover:text-primary text-xs sm:text-sm">
-                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedTeacher(m);
-                        setShowTeacherHistory(true);
-                      }}
-                      className="gap-1.5 text-xs sm:text-sm"
-                    >
-                      <History className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Attendance
-                    </Button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-xs">Actions</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setDetail(m)}>
+                        <Eye className="h-3.5 w-3.5 mr-2" /> View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setSelectedTeacher(m); setShowTeacherHistory(true); }}>
+                        <History className="h-3.5 w-3.5 mr-2" /> Attendance
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={async () => {
+                        if (!confirm("Delete this teacher?")) return;
+                        const res = await UserService.deleteUser(m._id);
+                        if (res?.error || res?.statusCode >= 400) toast.error(res?.message ?? "Failed");
+                        else { toast.success("Deleted"); await refetch(); }
+                      }} className="text-destructive">
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </motion.tr>
             ))}
             {deptProfessors.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">
+                <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
                   No professors in your department.
                 </td>
               </tr>
@@ -380,6 +394,16 @@ const HodFaculty = () => {
               </Field>
               <Field label="Qualification">
                 <Input value={form.qualification} onChange={set("qualification")} />
+              </Field>
+              <Field label="CTI">
+                <select
+                  value={form.is_CTI ? "true" : "false"}
+                  onChange={(e) => setForm((f) => ({ ...f, is_CTI: e.target.value === "true" }))}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
               </Field>
               <Field label="Department" col2>
                 <Input

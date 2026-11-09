@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Trash2, X, Eye, ArrowRight, Upload } from "lucide-react";
+import { Pencil, Trash2, X, Eye, ArrowRight, Upload, Receipt } from "lucide-react";
 import TableSkeleton from "@/components/TableSkeleton";
+import StudentFeeDetailModal from "@/components/StudentFeeDetailModal";
+import ActiveUserToggle from "@/components/ActiveUserToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
@@ -12,6 +14,8 @@ import { toast } from "sonner";
 import { getCommonStudentValidationError } from "@/lib/studentValidation";
 import { SEMESTERS } from "@/lib/academic";
 import ConfirmDeleteModal from "@/components/ConfirmDelete";
+import UserAvatar from "@/components/UserAvatar";
+import { getStudentProgram, isBsAdpStudent } from "@/lib/studentProgram";
 import {
   StudentFormField as Field,
 } from "@/components/students/StudentFormPrimitives";
@@ -31,6 +35,7 @@ const defaultForm = {
   department: "",
   city: "",
   session: "",
+  rollNo: "",
   category: "bs", // ✅ "bs" or "adp" — stored directly in DB
   semester: "I", // ✅ "I" to "VIII" — stored in DB as class field
   subjects: "",
@@ -57,12 +62,9 @@ const BsAdpStudents = () => {
     [departments],
   );
 
-  // ✅ category is "bs" or "adp" in DB
+  // ✅ Resolved from the student's own category, falling back to the department's
   const bsAdpUsers = useMemo(
-    () =>
-      (users || []).filter(
-        (u: any) => u?.category === "bs" || u?.category === "adp",
-      ),
+    () => (users || []).filter((u: any) => u?.role === "student" && isBsAdpStudent(u)),
     [users],
   );
   const [search, setSearch] = useState("");
@@ -76,6 +78,9 @@ const BsAdpStudents = () => {
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 const [deleting,     setDeleting]     = useState(false);
   const [form, setForm] = useState(defaultForm);
+  
+  // ✅ Fee detail modal state
+  const [feeDetailStudent, setFeeDetailStudent] = useState<any | null>(null);
 
   const [bulkUploading, setBulkUploading] = useState(false);
 
@@ -144,8 +149,9 @@ const [deleting,     setDeleting]     = useState(false);
   const filtered = allStudents.filter(
     (s) =>
       (s?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        s?.lastName?.toLowerCase().includes(search.toLowerCase()) ||
         s?.specialId?.toLowerCase().includes(search.toLowerCase())) &&
-      s?.category === selectedProgram,
+      getStudentProgram(s) === selectedProgram,
   );
 
   const displayed = showAll ? filtered : filtered.slice(0, PREVIEW_COUNT);
@@ -189,6 +195,7 @@ const [deleting,     setDeleting]     = useState(false);
     setSaving(true);
 
     const payload = {
+      role: "student",
       name: form.name,
       lastName: form.lastName,
       email: form.email,
@@ -202,6 +209,7 @@ const [deleting,     setDeleting]     = useState(false);
       class: form.semester, // ✅ "I" to "VIII" → stored in DB class field
       department: form.department,
       session: form.session,
+      rollNo: Number(form.rollNo),
       matricMarks: Number(form.matricMarks),
       interMarks: Number(form.interMarks),
       shift: form.shift,
@@ -260,6 +268,7 @@ const [deleting,     setDeleting]     = useState(false);
     class:          form.semester,
     department:     form.department,
     session:        form.session,
+    rollNo:         form.rollNo ? Number(form.rollNo) : undefined,
     matricMarks:    Number(form.matricMarks),
     interMarks:     Number(form.interMarks),
     shift:          form.shift,
@@ -386,6 +395,7 @@ const [deleting,     setDeleting]     = useState(false);
             <tr className="border-b border-border">
               {[
                 "S.No",
+                "Photo",
                 "Student ID",
                 "Name",
                 "Last Name",
@@ -415,13 +425,16 @@ const [deleting,     setDeleting]     = useState(false);
                 <td className="p-4 text-sm">
                   {String(i + 1).padStart(2, "0")}
                 </td>
+                <td className="p-4">
+                  <UserAvatar image={s?.image} name={s?.name} lastName={s?.lastName} className="h-10 w-10" />
+                </td>
                 <td className="p-4 text-sm font-medium">{s?.specialId}</td>
                 <td className="p-4 text-sm">{s?.name}</td>
                 <td className="p-4 text-sm text-muted-foreground">
                   {s?.lastName}
                 </td>
-                {/* ✅ category holds "bs" or "adp" */}
-                <td className="p-4 text-sm uppercase">{s?.category ?? "—"}</td>
+                {/* ✅ resolved program (falls back to department) */}
+                <td className="p-4 text-sm uppercase">{getStudentProgram(s) ?? "—"}</td>
                 {/* ✅ class holds "I"-"VIII", look up label for display */}
                 <td className="p-4 text-sm">
                   {SEMESTERS.find((sem) => sem.value === s?.class)?.label ??
@@ -439,6 +452,13 @@ const [deleting,     setDeleting]     = useState(false);
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
+                      onClick={() => setFeeDetailStudent(s)}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-accent-foreground transition-colors"
+                      title="View Fee Details"
+                    >
+                      <Receipt className="h-4 w-4" />
+                    </button>
+                    <button
                       onClick={() => {
                         setEditingStudent(s);
                         setForm({
@@ -453,6 +473,7 @@ const [deleting,     setDeleting]     = useState(false);
                           department: s?.department?._id ?? "",
                           city: s?.city ?? "",
                           session: s?.session ?? "",
+                          rollNo: s?.rollNo?.toString() ?? "",
                           category: s?.category ?? "bs",
                           semester: s?.class ?? "I",
                           subjects: s?.subjects?.join(", ") ?? "",
@@ -472,6 +493,7 @@ const [deleting,     setDeleting]     = useState(false);
   className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
   <Trash2 className="h-4 w-4" />
 </button>
+                      <ActiveUserToggle user={s} refetch={refetch} />
                   </div>
                 </td>
               </motion.tr>
@@ -479,7 +501,7 @@ const [deleting,     setDeleting]     = useState(false);
             {displayed?.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="p-8 text-center text-sm text-muted-foreground"
                 >
                   No students found
@@ -692,6 +714,14 @@ const [deleting,     setDeleting]     = useState(false);
                       placeholder="Lahore"
                     />
                   </Field>
+                  <Field label="Roll No">
+                    <Input
+                      type="number"
+                      value={form.rollNo}
+                      onChange={set("rollNo")}
+                      placeholder="1"
+                    />
+                  </Field>
 
                   {/* ✅ Program sets category — resets semester if switching to ADP with >4th selected */}
                   <Field label="Program">
@@ -773,7 +803,7 @@ const [deleting,     setDeleting]     = useState(false);
                       placeholder="850"
                     />
                   </Field>
-                  <Field label="Inter Marks (out of 1100)">
+                  <Field label="Inter Marks (out of 1200)">
                     <Input
                       type="number"
                       min={0}
@@ -829,9 +859,17 @@ const [deleting,     setDeleting]     = useState(false);
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ✅ Student Fee Detail Modal */}
+      <StudentFeeDetailModal
+        open={!!feeDetailStudent}
+        student={feeDetailStudent}
+        onClose={() => setFeeDetailStudent(null)}
+      />
+
       <ConfirmDeleteModal
   open={!!deleteTarget}
-  studentName={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
+  name={`${deleteTarget?.name ?? ""} ${deleteTarget?.lastName ?? ""}`}
   deleting={deleting}
   onConfirm={handleDeleteConfirm}
   onCancel={() => setDeleteTarget(null)}
